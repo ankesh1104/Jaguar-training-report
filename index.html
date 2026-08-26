@@ -1,0 +1,2090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Training Report Generator — Jaguar Security Services</title>
+
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#7E0000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Training Report">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="icon" href="./icon-192.png">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{
+    --maroon:#7E0000;
+    --maroon-dark:#5C0000;
+    --blue:#0070C0;
+    --blue-dark:#00568f;
+    --bg:#F5F7FB;
+    --card:#FFFFFF;
+    --ink:#172033;
+    --muted:#697386;
+    --line:#E4E8F1;
+    --good:#1E9E5A;
+    --good-bg:#E9F9EE;
+    --bad:#D0342C;
+    --bad-bg:#FBEEEE;
+    --radius-lg:14px;
+    --radius-md:12px;
+    --radius-sm:10px;
+    --shadow-card:0 1px 2px rgba(23,32,51,.04), 0 1px 8px rgba(23,32,51,.04);
+    --shadow-pop:0 8px 24px rgba(23,32,51,.10);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Arial,Helvetica,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    padding-bottom:132px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ================= HEADER ================= */
+  .topbar{
+    background:var(--card);
+    color:var(--ink);
+    padding:14px 22px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    border-bottom:1px solid var(--line);
+    box-shadow:0 1px 2px rgba(23,32,51,.03);
+    position:sticky;
+    top:0;
+    z-index:50;
+  }
+  .topbar .menu-dot{
+    display:flex;align-items:center;justify-content:center;
+    width:34px;height:34px;border-radius:9px;flex-shrink:0;
+    background:var(--bg);color:var(--muted);font-size:15px;
+    border:1px solid var(--line);
+  }
+  .topbar img.brand-logo{height:34px;width:auto;border-radius:6px;background:#fff;padding:2px;flex-shrink:0;}
+  .topbar .titles{min-width:0;}
+  .topbar h1{font-size:15.5px;margin:0;font-weight:700;letter-spacing:-.1px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .topbar .titles p{margin:1px 0 0;font-size:11.5px;color:var(--muted);font-weight:600;letter-spacing:.2px;text-transform:uppercase;}
+  .topbar .spacer{flex:1;}
+  .topbar .actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+
+  .icon-btn{
+    background:var(--card);
+    border:1px solid var(--line);
+    color:var(--ink);
+    border-radius:9px;
+    padding:8px 13px;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    white-space:nowrap;
+    transition:background .15s,border-color .15s;
+  }
+  .icon-btn:hover{background:var(--bg);border-color:#cfd6e4;}
+  .icon-btn.primary{
+    background:var(--maroon);border-color:var(--maroon);color:#fff;
+    box-shadow:0 2px 8px rgba(126,0,0,.22);
+  }
+  .icon-btn.primary:hover{background:var(--maroon-dark);}
+
+  .wrap{max-width:900px;margin:24px auto;padding:0 16px;}
+
+  /* ================= CARDS ================= */
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    margin-bottom:18px;
+    overflow:hidden;
+    box-shadow:var(--shadow-card);
+  }
+  .card-head{
+    background:transparent;
+    color:var(--ink);
+    padding:18px 22px 14px;
+    font-weight:700;
+    font-size:14.5px;
+    letter-spacing:-.1px;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .card-head .head-main{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  .card-head .eyebrow{
+    display:flex;align-items:center;gap:8px;
+  }
+  .card-head .accent-dot{
+    width:8px;height:8px;border-radius:50%;background:var(--blue);flex-shrink:0;
+  }
+  .card-head .subtitle{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:0;}
+  .card-head.alt .accent-dot{background:var(--maroon);}
+  .card-body{padding:22px;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;}
+  @media (max-width:640px){.grid2{grid-template-columns:1fr;}}
+
+  label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;letter-spacing:.1px;}
+  input[type=text],input[type=number],input[type=email],input[type=date],select,textarea{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:var(--radius-sm);
+    font-size:13.5px;
+    font-family:inherit;
+    background:#fff;
+    color:var(--ink);
+    transition:border-color .15s,box-shadow .15s;
+  }
+  input:focus,select:focus,textarea:focus{
+    outline:none;border-color:var(--blue);
+    box-shadow:0 0 0 3px rgba(0,112,192,.13);
+  }
+  textarea{resize:vertical;min-height:38px;}
+  .field{margin-bottom:14px;}
+  .field:last-child{margin-bottom:0;}
+
+  .helptext{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;}
+  .helptext.busy{color:var(--blue-dark);}
+  .helptext.err{color:var(--bad);}
+  .helptext.ok{color:var(--good);}
+
+  /* client selector */
+  .client-select-wrap select{font-weight:600;}
+
+  /* ---- objectives / outcomes numbered rows (rendered by existing JS) ---- */
+  .list-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;}
+  .list-row textarea{flex:1;}
+  .list-row .num{
+    width:26px;height:38px;display:flex;align-items:center;justify-content:center;
+    font-size:12px;color:var(--maroon);font-weight:700;flex-shrink:0;
+    background:var(--bg);border-radius:8px;
+  }
+  .rm-btn{
+    background:var(--bad-bg);color:var(--bad);border:1px solid #f3c9c2;border-radius:8px;
+    width:36px;height:38px;flex-shrink:0;cursor:pointer;font-size:14px;
+    transition:background .15s;
+  }
+  .rm-btn:hover{background:#f7d9d5;}
+  .add-btn{
+    background:#eef6ff;color:var(--blue-dark);border:1px dashed var(--blue);
+    border-radius:var(--radius-sm);padding:9px 14px;font-size:12.5px;font-weight:700;cursor:pointer;
+    margin-top:2px;transition:background .15s;
+  }
+  .add-btn:hover{background:#dcecff;}
+
+  /* ---- screenshots grid (rendered by existing JS) ---- */
+  .shots-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media (max-width:640px){.shots-grid{grid-template-columns:1fr;}}
+  .shot-box{
+    border:1.5px dashed #cbd3e1;border-radius:var(--radius-md);
+    aspect-ratio:4/3;
+    display:flex;align-items:center;justify-content:center;
+    position:relative;cursor:pointer;overflow:hidden;background:var(--bg);
+    transition:border-color .15s,background .15s;
+  }
+  .shot-box:hover{border-color:var(--blue);background:#eef4fb;}
+  .shot-box img{width:100%;height:100%;object-fit:cover;}
+  .shot-box .ph{color:var(--muted);font-size:12px;text-align:center;padding:10px;font-weight:600;line-height:1.6;}
+  .shot-box .rm{
+    position:absolute;top:6px;right:6px;background:rgba(23,32,51,.65);color:#fff;
+    border:none;border-radius:7px;width:26px;height:26px;cursor:pointer;font-size:13px;
+  }
+  .shot-box input[type=file]{display:none;}
+
+  /* ---- logo card ---- */
+  .logo-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+  .logo-preview-frame{
+    height:64px;width:96px;border:1px solid var(--line);border-radius:var(--radius-sm);
+    background:var(--bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:6px;
+  }
+  .logo-preview{max-height:100%;max-width:100%;object-fit:contain;}
+  .logo-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+  /* ---- ppt upload ---- */
+  .upload-row{
+    display:flex;align-items:center;gap:14px;padding:14px;
+    border:1.5px dashed #cbd3e1;border-radius:var(--radius-md);background:var(--bg);
+  }
+  .upload-row .glyph{font-size:22px;flex-shrink:0;}
+  .upload-row .copy{flex:1;min-width:0;}
+  .upload-row .copy .title-line{font-weight:700;font-size:13px;color:var(--ink);}
+  input#pptFileInput{font-size:12.5px;margin-top:8px;}
+
+  /* ---- status badges ---- */
+  .badge{
+    display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;
+    background:var(--good-bg);color:var(--good);
+  }
+  .badge.off{background:var(--bad-bg);color:var(--bad);}
+  .ai-btn{
+    background:#fff;border:1px solid var(--line);color:var(--maroon);
+    border-radius:8px;padding:6px 12px;font-size:11.5px;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;gap:5px;white-space:nowrap;transition:background .15s;
+  }
+  .ai-btn:hover{background:var(--bg);}
+  .ai-btn:disabled{opacity:.55;cursor:wait;}
+  #aiStatus.busy{color:var(--blue-dark);font-weight:600;}
+  #aiStatus.err{color:var(--bad);font-weight:600;}
+  #aiStatus.ok{color:var(--good);font-weight:600;}
+
+  .status-line{display:flex;align-items:center;gap:8px;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+  .dot.on{background:var(--good);}
+  .dot.off{background:var(--bad);}
+
+  /* ================= ACTION BAR ================= */
+  .actionbar{
+    position:fixed;bottom:0;left:0;right:0;
+    background:rgba(255,255,255,.92);backdrop-filter:blur(10px);
+    border-top:1px solid var(--line);
+    padding:14px 16px;box-shadow:0 -6px 24px rgba(23,32,51,.08);
+    z-index:60;
+  }
+  .actionbar-inner{max-width:900px;margin:0 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .go-btn{
+    flex:1;min-width:240px;
+    background:linear-gradient(135deg,var(--maroon) 0%,var(--maroon-dark) 100%);
+    color:#fff;border:none;border-radius:var(--radius-sm);
+    padding:15px 20px;font-size:14.5px;font-weight:700;cursor:pointer;
+    box-shadow:0 4px 14px rgba(126,0,0,.28);
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    transition:filter .15s;
+  }
+  .go-btn:hover{filter:brightness(1.08);}
+  .go-btn:disabled{opacity:.6;cursor:not-allowed;}
+  .status{font-size:12.5px;flex-basis:100%;text-align:center;min-height:16px;font-weight:600;}
+  .status.ok{color:var(--good);}
+  .status.err{color:var(--bad);}
+  .status.busy{color:var(--muted);}
+
+  /* ================= MODALS ================= */
+  .modal-bg{
+    position:fixed;inset:0;background:rgba(23,32,51,.5);display:none;
+    align-items:center;justify-content:center;z-index:100;padding:16px;
+  }
+  .modal-bg.show{display:flex;}
+  .modal{
+    background:#fff;border-radius:var(--radius-lg);max-width:480px;width:100%;
+    max-height:86vh;overflow-y:auto;box-shadow:var(--shadow-pop);
+  }
+  .modal-head{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
+  .modal-head h3{margin:0;font-size:15px;font-weight:700;}
+  .modal-body{padding:20px;}
+  .close-x{background:var(--bg);border:none;border-radius:8px;width:30px;height:30px;font-size:17px;cursor:pointer;color:var(--muted);line-height:1;}
+  .close-x:hover{background:var(--line);}
+
+  .setup-steps{font-size:12.5px;line-height:1.65;background:#F3F8FF;border:1px solid #DCEAFC;border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;color:var(--ink);}
+  .setup-steps ol{margin:8px 0 0;padding-left:18px;}
+  .setup-steps a{color:var(--blue-dark);}
+  .save-btn{
+    background:var(--maroon);color:#fff;border:none;border-radius:var(--radius-sm);
+    padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;width:100%;margin-top:8px;
+    transition:background .15s;
+  }
+  .save-btn:hover{background:var(--maroon-dark);}
+
+  /* ================= TAB NAV ================= */
+  .tabbar{
+    max-width:900px;margin:16px auto 0;padding:0 16px;
+    display:flex;gap:8px;
+  }
+  .tab-btn{
+    flex:1;background:var(--card);border:1px solid var(--line);color:var(--muted);
+    border-radius:10px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:7px;transition:background .15s,color .15s,border-color .15s;
+  }
+  .tab-btn:hover{background:var(--bg);}
+  .tab-btn.active{background:var(--maroon);border-color:var(--maroon);color:#fff;box-shadow:0 2px 8px rgba(126,0,0,.2);}
+</style>
+<body>
+
+<div class="topbar">
+  <div class="menu-dot">☰</div>
+  <img id="topLogo" class="brand-logo" src="" alt="logo">
+  <div class="titles">
+    <h1>Training Report Generator</h1>
+    <p>Jaguar Security Services</p>
+  </div>
+  <div class="spacer"></div>
+  <div class="actions">
+    <button class="icon-btn" onclick="openDashboard()">📊 Dashboard</button>
+    <button class="icon-btn" onclick="openGmailSetup()">✉️ Gmail Setup <span id="gmailSetupBadge" class="badge off">not set</span></button>
+    <button class="icon-btn primary" id="installBtn" style="display:none" onclick="triggerInstall()">📲 Install App</button>
+  </div>
+</div>
+
+<div class="tabbar">
+  <button class="tab-btn active" id="tabBtnTraining" onclick="switchTab('training')">📄 Training Report</button>
+  <button class="tab-btn" id="tabBtnVisit" onclick="switchTab('visit')">🧭 Site Visit Report</button>
+</div>
+
+<div class="wrap" id="trainingView">
+
+  <div class="card">
+    <div class="card-head">
+      <div class="head-main">
+        <div class="eyebrow"><span class="accent-dot"></span>Training Particulars</div>
+        <span class="subtitle">Enter the basic details of the training session.</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field client-select-wrap">
+        <label>Select Client / Location</label>
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <select id="clientDirSelect" onchange="applyClientDirectorySelection()" style="flex:1;">
+            <option value="">— Choose from Training Tracker —</option>
+          </select>
+          <button type="button" class="add-btn" style="white-space:nowrap;" onclick="openAddClientModal('clientDirSelect')">➕ Add Client</button>
+        </div>
+        <div class="helptext">Selecting a client automatically fills recipient, CC and related details below.</div>
+        <div id="clientMailPreview" class="helptext" style="display:none;margin-top:8px;background:var(--bg);border-radius:8px;padding:8px 10px;"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Client Name</label><input id="clientName" type="text" placeholder="e.g. Mizuho Global Services India"></div>
+        <div class="field"><label>Trainer Name</label><input id="trainerName" type="text" placeholder="e.g. Mahesh Usanale"></div>
+
+        <div class="field"><label>Site Name &amp; Location</label><input id="siteName" type="text" placeholder="e.g. Mizuho Global Services India - Khardi"></div>
+        <div class="field"><label>Designation</label><input id="designation" type="text" placeholder="e.g. Assistant Manager Operations"></div>
+
+        <div class="field"><label>Date</label><input id="trainingDate" type="text" placeholder="e.g. 18th July -2026"></div>
+        <div class="field">
+          <label>Training Topic <span style="font-weight:700;color:var(--maroon);">✨ AI Assisted</span></label>
+          <input id="trainingTopic" type="text" placeholder="e.g. Workplace Violence">
+          <div class="helptext" id="aiStatus">Leave this field after typing — objectives &amp; outcomes fill in automatically.</div>
+        </div>
+
+        <div class="field"><label>Contact Person at Site</label><input id="contactPerson" type="text" placeholder="e.g. Mr. Ravindra Verma"></div>
+        <div class="field"><label>Topic Category</label><input id="topicCategory" type="text" placeholder="e.g. Security Training"></div>
+
+        <div class="field">
+          <label>Training Mode</label>
+          <select id="trainingMode">
+            <option>Onsite</option>
+            <option>Online</option>
+            <option>Hybrid</option>
+          </select>
+        </div>
+        <div class="field"><label>Total Attendees</label><input id="totalAttendees" type="number" min="0" placeholder="e.g. 12"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="head-main">
+        <div class="eyebrow"><span class="accent-dot"></span>Company Logo</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="logo-row">
+        <div class="logo-preview-frame"><img id="logoPreview" class="logo-preview" src=""></div>
+        <div style="flex:1;min-width:180px;">
+          <input type="file" id="logoInput" accept="image/*" style="display:none" onchange="handleLogoUpload(event)">
+          <div class="logo-actions">
+            <button class="add-btn" onclick="document.getElementById('logoInput').click()">Change Logo</button>
+            <button class="add-btn" onclick="resetLogo()">Reset to Default</button>
+          </div>
+          <div class="helptext">This logo is saved and reused automatically for every future report.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="head-main">
+        <div class="eyebrow"><span class="accent-dot"></span>Training Evidence</div>
+        <span class="subtitle">Screenshots from the session — up to 8 photos.</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="shots-grid" id="shotsGrid"></div>
+      <div class="helptext">Tap a box to upload a photo from this training session.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="head-main">
+        <div class="eyebrow"><span class="accent-dot"></span>Training PPT</div>
+        <span class="subtitle">Optional — used by AI to generate more accurate objectives and outcomes.</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="upload-row">
+        <div class="glyph">📎</div>
+        <div class="copy">
+          <div class="title-line">Upload Training PPT</div>
+          <input id="pptFileInput" type="file" accept=".pptx" onchange="handlePptUpload(event)">
+          <div class="helptext" id="pptStatus">Upload the training .pptx used for this session — the AI will read the slide text and base the objectives &amp; outcomes on it instead of just the topic title.</div>
+          <button class="add-btn" id="pptRemoveBtn" style="display:none;margin-top:8px;" onclick="removePpt()">✕ Remove PPT</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="head-main">
+        <div class="eyebrow"><span class="accent-dot"></span>Training Objectives</div>
+      </div>
+      <button class="ai-btn" onclick="autoFillFromTopic(true)">✨ Regenerate with AI</button>
+    </div>
+    <div class="card-body" id="objectivesBody"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="head-main">
+        <div class="eyebrow"><span class="accent-dot"></span>Learning Outcomes</div>
+      </div>
+      <button class="ai-btn" onclick="autoFillFromTopic(true)">✨ Regenerate with AI</button>
+    </div>
+    <div class="card-body" id="outcomesBody"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head alt">
+      <div class="head-main">
+        <div class="eyebrow"><span class="accent-dot"></span>Google Sheet Log <span style="font-weight:500;color:var(--muted);font-size:11.5px;">(optional)</span></div>
+      </div>
+      <button class="ai-btn" onclick="openSheetSetup()">⚙️ Setup</button>
+    </div>
+    <div class="card-body">
+      <div class="helptext" id="sheetStatusNote">Not connected — every report you generate can also be added as a row in a Google Sheet, so you get one running log of all trainings. Tap Setup to connect (free, ~3 min, one-time).</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head alt">
+      <div class="head-main">
+        <div class="eyebrow"><span class="accent-dot"></span>Send Report</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>Recipient Email(s) — comma separated</label>
+        <input id="recipientEmail" type="text" placeholder="e.g. hr@client.com, ops@jaguarsecurity.in">
+      </div>
+      <div class="field">
+        <label>CC (optional) — comma separated</label>
+        <input id="ccEmail" type="text" placeholder="e.g. manager@jaguarsecurity.in">
+      </div>
+      <div class="field">
+        <label>Email Subject</label>
+        <input id="emailSubject" type="text" placeholder="Auto-fills from details below — edit if you like">
+      </div>
+      <div class="field">
+        <label>Email Body</label>
+        <textarea id="emailBody" rows="8" placeholder="Auto-fills from details below — edit if you like"></textarea>
+      </div>
+      <button class="add-btn" onclick="autoFillEmailText(true)">🔄 Refresh Subject &amp; Body from details above</button>
+      <div class="helptext" style="margin-top:8px;">Clicking the button below downloads the Excel file, then opens a Gmail compose window with the recipient, CC, subject and body already filled in (using your real Gmail account and signature — no third-party branding). Just attach the Excel file you just downloaded and hit Send.</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="wrap" id="visitView" style="display:none;">
+
+  <div class="card">
+    <div class="card-head alt">
+      <div class="head-main">
+        <div class="eyebrow"><span class="accent-dot"></span>Site Visit Report</div>
+        <span class="subtitle">Based on the Weekly Visit Report tracker — fill it in per client visit and save it to the log.</span>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <div class="field client-select-wrap">
+        <label>Client / Location</label>
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <select id="visitClientSelect" onchange="applyVisitClientSelection()" style="flex:1;">
+            <option value="">— Choose from Training Tracker —</option>
+          </select>
+          <button type="button" class="add-btn" style="white-space:nowrap;" onclick="openAddClientModal('visitClientSelect')">➕ Add Client</button>
+        </div>
+        <div class="helptext">Selecting a client fills Location &amp; Region below — or just type them in directly.</div>
+      </div>
+
+      <div class="grid2">
+        <div class="field"><label>Location</label><input id="visitLocation" type="text" placeholder="e.g. Kharadi"></div>
+        <div class="field"><label>Region / Zone</label><input id="visitRegion" type="text" placeholder="e.g. Pune"></div>
+        <div class="field"><label>Site Responsibility</label><input id="visitSiteResponsibility" type="text" placeholder="e.g. Arjun Singh"></div>
+        <div class="field"><label>Visit Date</label><input id="visitDate" type="text" placeholder="e.g. 23-05-2026"></div>
+      </div>
+
+      <div class="grid2">
+        <div class="field"><label>Authorized</label><input id="visitAuthorized" type="number" min="0" oninput="calcVisitVacant()" placeholder="e.g. 18"></div>
+        <div class="field"><label>Actual Deployed</label><input id="visitActualDeployed" type="number" min="0" oninput="calcVisitVacant()" placeholder="e.g. 18"></div>
+        <div class="field"><label>Vacant</label><input id="visitVacant" type="number" min="0" placeholder="auto-calculated, editable"></div>
+        <div class="field"><label>Attendees</label><input id="visitAttendees" type="number" min="0" placeholder="e.g. 12"></div>
+      </div>
+
+      <div class="field"><label>Remarks</label><textarea id="visitRemarks" rows="2" placeholder="e.g. No Observation, No Vacant Post"></textarea></div>
+      <div class="field"><label>Operations</label><textarea id="visitOperations" rows="2" placeholder="What's currently happening on site"></textarea></div>
+      <div class="field"><label>Challenges</label><textarea id="visitChallenges" rows="2"></textarea></div>
+      <div class="field"><label>Plan of Action</label><textarea id="visitPlanOfAction" rows="2"></textarea></div>
+      <div class="field"><label>Any New Development</label><textarea id="visitNewDevelopment" rows="2"></textarea></div>
+      <div class="field"><label>Escalations if Any</label><textarea id="visitEscalations" rows="2"></textarea></div>
+      <div class="field"><label>Pending Tasks</label><textarea id="visitPendingTasks" rows="2"></textarea></div>
+      <div class="field"><label>Misc. / Others</label><textarea id="visitMisc" rows="2"></textarea></div>
+      <div class="field"><label>Discussion Points in Visit (MOM)</label><textarea id="visitMom" rows="2"></textarea></div>
+
+      <div class="grid2">
+        <div class="field"><label>Visit Planned (last week)</label><input id="visitPlanned" type="text" placeholder="e.g. Fortnightly"></div>
+        <div class="field"><label>Actual Visit (this week)</label><input id="visitActual" type="text" placeholder="e.g. 23-05-2026"></div>
+        <div class="field"><label>Site Visit Completed Till Date</label><input id="visitSiteVisitCompleted" type="number" min="0"></div>
+        <div class="field"><label>Pending</label><input id="visitPending" type="number" min="0"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>NV Planned</label><input id="visitNvPlanned" type="text" placeholder="e.g. Fortnightly"></div>
+        <div class="field"><label>NV Actual</label><input id="visitNvActual" type="text"></div>
+        <div class="field"><label>NV Completed Till Date</label><input id="visitNvCompleted" type="number" min="0"></div>
+        <div class="field"><label>Training Completed Till Date</label><input id="visitTrainingCompleted" type="number" min="0"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Training Planned</label><input id="visitTrainingPlanned" type="text" placeholder="e.g. Fortnightly"></div>
+        <div class="field"><label>Training Actual</label><input id="visitTrainingActual" type="text"></div>
+      </div>
+      <div class="field"><label>Training Remarks</label><textarea id="visitTrainingRemarks" rows="2"></textarea></div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
+        <button class="add-btn" onclick="saveVisitReport()">💾 Save Visit Report</button>
+        <button class="add-btn" onclick="exportVisitReports()">📄 Export All to Excel</button>
+        <button class="add-btn" onclick="clearVisitForm()">✕ Clear Form</button>
+      </div>
+      <div class="status" id="visitStatusMsg" style="text-align:left;margin-top:8px;"></div>
+      <div class="helptext" style="margin-top:6px;">Saved visit reports are logged on this device and summarized under 📊 Dashboard → Site Visit Reports.</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="actionbar" id="actionBarWrap">
+  <div class="actionbar-inner">
+    <div class="status" id="statusMsg"></div>
+    <button class="go-btn" id="goBtn" onclick="generateAndSend()">📄 Generate Excel &amp; Open in Gmail</button>
+  </div>
+</div>
+
+<!-- Gmail Setup Modal -->
+<div class="modal-bg" id="gmailSetupModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Gmail Setup (direct send — free)</h3>
+      <button class="close-x" onclick="closeGmailSetup()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="setup-steps">
+        One-time setup so the app can send mail directly from your own Gmail account with one click (no third-party service, no branding). Takes ~10 minutes, free.
+        <ol>
+          <li>Go to <a href="https://console.cloud.google.com/" target="_blank">console.cloud.google.com</a>, create a project (or use an existing one).</li>
+          <li><b>APIs &amp; Services → Library</b> → search "Gmail API" → Enable.</li>
+          <li><b>APIs &amp; Services → OAuth consent screen</b> → set it to External, fill the required fields, and under <b>Test users</b> add your own Gmail address.</li>
+          <li><b>APIs &amp; Services → Credentials → Create Credentials → OAuth client ID</b> → Application type: <b>Web application</b>. Under <b>Authorized JavaScript origins</b>, add your exact live site URL (e.g. <code>https://your-site.netlify.app</code>).</li>
+          <li>Copy the <b>Client ID</b> it gives you (looks like <code>123...apps.googleusercontent.com</code>) and paste it below.</li>
+        </ol>
+        The first time you click send, Google will show a one-time consent popup since this is your own personal app — click "Continue"/"Advanced → Go to (app name)" to proceed. This value is not secret and is stored only in your browser.
+      </div>
+      <div class="field"><label>Google OAuth Client ID</label><input id="gmailClientId" type="text" placeholder="xxxxxxxx.apps.googleusercontent.com"></div>
+      <div class="field"><label>Signature (optional — appended to every email, since APIs can't pull your Gmail signature automatically)</label><textarea id="gmailSignature" rows="4" placeholder="e.g. Regards,&#10;Your Name&#10;Jaguar Security Services"></textarea></div>
+      <button class="save-btn" onclick="saveGmailSetup()">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+
+
+
+<!-- Google Sheet Setup Modal -->
+<div class="modal-bg" id="sheetModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Google Sheet Log Setup</h3>
+      <button class="close-x" onclick="closeSheetSetup()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="setup-steps">
+        One-time setup so every report also logs a row in your own Google Sheet. Free, ~3 minutes.
+        <ol>
+          <li>Create a new Google Sheet (or use an existing one). In row 1, add these headers across columns A–N:
+            <br><code>Timestamp | Client | Site | Date | Contact Person | Mode | Trainer | Designation | Topic | Category | Attendees | Objectives | Outcomes | Recipient</code></li>
+          <li>In the Sheet, go to <b>Extensions → Apps Script</b>. Delete any existing code and paste this (if you already set this up before, replace your old code with this updated version — it adds the ability to read data back for the Dashboard):
+            <div style="background:#1e1e1e;color:#d4d4d4;border-radius:6px;padding:10px;font-size:11px;overflow-x:auto;white-space:pre;margin:8px 0;">function doPost(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var data = JSON.parse(e.postData.contents);
+  sheet.appendRow([
+    new Date(), data.clientName, data.siteName, data.trainingDate,
+    data.contactPerson, data.trainingMode, data.trainerName, data.designation,
+    data.trainingTopic, data.topicCategory, data.totalAttendees,
+    data.objectives, data.outcomes, data.recipientEmail
+  ]);
+  return ContentService.createTextOutput(JSON.stringify({status:'success'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doGet(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var values = sheet.getDataRange().getValues();
+  var rows = values.slice(1); // skip header row
+  var out = rows
+    .filter(function(r){ return r[1] || r[2]; }) // skip fully blank rows
+    .map(function(r){
+      return {
+        timestamp: r[0], client: r[1], site: r[2], date: r[3],
+        contactPerson: r[4], mode: r[5], trainer: r[6], designation: r[7],
+        topic: r[8], category: r[9], attendees: r[10],
+        objectives: r[11], outcomes: r[12], recipient: r[13]
+      };
+    });
+  return ContentService.createTextOutput(JSON.stringify(out))
+    .setMimeType(ContentService.MimeType.JSON);
+}</div>
+          </li>
+          <li>If this is a first-time setup: click <b>Deploy → New deployment</b> → gear icon → select <b>Web app</b>. Set "Execute as" = <b>Me</b>, "Who has access" = <b>Anyone</b>. Click Deploy, and authorize when asked.
+            <br>If you're updating an existing setup: click <b>Deploy → Manage deployments</b> → pencil (edit) icon → Version: <b>New version</b> → Deploy. This keeps your existing URL working.</li>
+          <li>Copy the <b>Web app URL</b> it gives you and paste it below.</li>
+        </ol>
+      </div>
+      <div class="field"><label>Web App URL</label><input id="cfgSheetUrl" type="text" placeholder="https://script.google.com/macros/s/..../exec"></div>
+      <button class="save-btn" onclick="saveSheetSetup()">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Client Modal -->
+<div class="modal-bg" id="addClientModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>➕ Add Client / Location</h3>
+      <button class="close-x" onclick="closeAddClientModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="helptext" style="margin-bottom:14px;">Adds a new entry to the Client / Location dropdown (used by both Training Report and Site Visit Report), saved on this device. "Mail Received" is the recipient email for reports sent to this client.</div>
+      <div class="field"><label>Client Name</label><input id="newClientName" type="text" placeholder="e.g. Acme Corporation"></div>
+      <div class="field"><label>Site Name &amp; Location</label><input id="newClientLocation" type="text" placeholder="e.g. Acme - Baner"></div>
+      <div class="field"><label>Zone / Region</label><input id="newClientZone" type="text" placeholder="e.g. Pune"></div>
+      <div class="field"><label>Mail Received (Recipient Email)</label><input id="newClientTo" type="text" placeholder="e.g. contact@acme.com"></div>
+      <div class="field"><label>CC (comma separated)</label><input id="newClientCc" type="text" placeholder="e.g. ops@jaguarsecurity.in"></div>
+      <button class="save-btn" onclick="saveNewClient()">Save Client</button>
+    </div>
+  </div>
+</div>
+
+<!-- Dashboard Modal -->
+<div class="modal-bg" id="dashboardModal">
+  <div class="modal" style="max-width:720px;">
+    <div class="modal-head">
+      <h3>📊 Training Dashboard</h3>
+      <button class="close-x" onclick="closeDashboard()">✕</button>
+    </div>
+    <div class="modal-body" id="dashboardBody">
+      <div class="helptext">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEFAULT_LOGO_B64 = "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";
+</script>
+<script>
+/* ============ Storage polyfill ============
+   The original app was built inside Claude's Artifact sandbox, which provides
+   a built-in `window.storage` API. That API does NOT exist in a normal browser
+   (Netlify, PWABuilder, etc.), so every save/load call was silently failing
+   (wrapped in try/catch) - that's why the Email Setup, Google Sheet Setup and
+   saved drafts never actually persisted once this became a standalone app.
+   This polyfill re-implements the same get/set/delete/list interface on top
+   of localStorage, so nothing else in the app below needs to change. */
+if (!window.storage) {
+  const STORAGE_PREFIX = 'trg_';
+  window.storage = {
+    async get(key) {
+      try {
+        const raw = localStorage.getItem(STORAGE_PREFIX + key);
+        if (raw === null) return null;
+        return { key, value: raw, shared: false };
+      } catch (e) { return null; }
+    },
+    async set(key, value) {
+      try {
+        localStorage.setItem(STORAGE_PREFIX + key, value);
+        return { key, value, shared: false };
+      } catch (e) { return null; }
+    },
+    async delete(key) {
+      try {
+        localStorage.removeItem(STORAGE_PREFIX + key);
+        return { key, deleted: true, shared: false };
+      } catch (e) { return null; }
+    },
+    async list(prefix) {
+      try {
+        const p = STORAGE_PREFIX + (prefix || '');
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith(p)) keys.push(k.slice(STORAGE_PREFIX.length));
+        }
+        return { keys, prefix, shared: false };
+      } catch (e) { return null; }
+    }
+  };
+}
+
+/* ============ App logic ============ */
+
+// Client / Location directory (from your Training Tracker sheet) — used to auto-fill recipient, CC and email body.
+const CLIENT_DIRECTORY = [{"zone":"MUMBAI","client":"Adidas Retail Store","location":"Adidas Mumbai, Ahmedabad & Indore","to":"Navin.kumar@externals.adidas.com, Deepak.rathee@externals.adidas.com","cc":"rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Netapp India Pvt Limited","location":"Net App","to":"Malayadri.K@netapp.com","cc":"Sujeet.Hiremath@netapp.com, rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, aarif@jaguarsecurity.in, nbgate@netapp.com, dhanaji@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Fil India Business And Research Services (Mumbai)","location":"Fidelity Lower Parel","to":"Ashish.Deshwal@fidelity.co.in","cc":"AjayKumar.Swain@fidelity.co.in, rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Eight Roads Investment Advisors Private Limited (Mumbai)","location":"Fidelity Worli (Eight Road)","to":"Sharon.Sulakhe@eightroads.com","cc":"rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Goldman Sachs (India) Securities Private Limited - Mumbai","location":"Goldman Sachs (India) Securities Private Limited","to":"Rohan.S.Chavan@gs.com, Shilpa.Pandit@gs.com","cc":"rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Apollo India Services Llp","location":"Apollo, Goregaon, BKC & We Work","to":"mdevsingh@apollo.com","cc":"rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Ikea India Private Limited","location":"Ikea Worli","to":"ganeshsuhas.tendulkar@ingka.ikea.com","cc":"rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Google Cloud India Pvt Ltd Csrm -  Mumbai","location":"Google CSRM","to":"parshuram@xwf.google.com, parshuram@google.com","cc":"rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Ubs Business Solutions (India) Pvt Ltd - Mumbai","location":"UBS Airoli, BKC, Ceejay House & Altimus Mumbai","to":"venkateshwaran.murugeshan@ubs.com","cc":"rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, vikas.rana@ubs.com, sachin.topkar@ubs.com, d-victor.jayaseelan@ubs.com, anish-kumar.sharma@ubs.com, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Ubs Business Solutions (India) Pvt Ltd - Mumbai","location":"UBS Mumbai - Escort","to":"ranjeet-zc.singh@ubs.com, prashant.morajkar@ubs.com","cc":"nikhil.shevate@ubs.com, ganesh.meher@ubs.com, manmohan-singh.sohal@ubs.com, sh-security-ubsmumbai@ubs.com, sh-mumbai-security@ubs.com, sh-pune-security@ubs.com, SH-transport_eon1_pune@ubs.com, sh-transport_mumbai@ubs.com, rituraj@jaguarsecurity.in, maheshusnale@jaguarsecurity.in, arjunsingh@jaguarsecurity.in, rajendra@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Warner Bros Discovery","location":"Warner Brothers","to":"shashank.walia@wbd.com","cc":"gouri.shankar@wbd.com, apacsoc@wbd.com, rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Tiaa Global Capabilities Private Limited","location":"Tiaa - Powai","to":"AbdulKadar.Shaikh@in.tiaa.org","cc":"jss.tiaaops@jaguarsecurity.in, Amit.Patil@in.tiaa.org, Shashanka.Sahu@tiaa.org, chhagan.chaudhari@in.tiaa.org, rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Cppib India Advisors Pvt Ltd","location":"CPPIB - 1NA & 3NA BKC","to":"sheela.fernandes@cppib.com","cc":"JSinclair@cppib.com, rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"World Bank","location":"World Bank- BKC","to":"rrodrigues1@ifc.org","cc":"rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Blackstone Advisors India Private Limited","location":"Blackstone Nariman Point","to":"prasad@blackstone.com","cc":"rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Barclays Global Service Centre Pvt. Ltd","location":"Barclays Goregaon","to":"bhupendra.dhamankar@barclays.com","cc":"neyer.mirza@barclays.com, vikalp.sharma@barclays.com, rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Mahindra & Mahindra Ltd.","location":"M&M Gateway Building","to":"tiwari.ashish4@mahindra.com","cc":"gilani.sameer@mahindra.com, gonsalves.roslyn@mahindra.com, rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Sanofi Healthcare India Pvt.Ltd","location":"Sanofi Vikhroli - Mumbai","to":"siddhesh.khanvilkar@sanofi.com","cc":"bhushan.kamtekar@sanofi.com, Sonu.Vijan@sanofi.com, rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Siemens Energy India Limited","location":"Siemens Energy Factory Kalwa & Airoli Mindspace","to":"chidananda.panda@siemens.com, vasant.desai@siemens.com","cc":"rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Innomotics India Private Limited","location":"Innomotics Pvt Ltd - Pawane & Ghansoli","to":"naresh.mokal@innomotics.com","cc":"rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Ikea India Private Limited *","location":"IKEA - Turbhe Navi Mumbai","to":"mayur.chiplunkar@ingka.ikea.com, ganeshsuhas.tendulkar@ingka.ikea.com","cc":"deepa.thakkar@ingka.ikea.com, o365g_dlbrnc545_retin545@ingka.com, satishkumar.singh2@ingka.com, onkar.pawar@ingka.com, mrunmai.shivpuje@ingka.com, rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Nomura Services India Pvt Ltd","location":"Nomura - Mumbai (Floor Guard)","to":"Sudarshan.Gawade@nomura.com","cc":"rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Nomura Services India Pvt Ltd","location":"Nomura - Mumbai (Escort Guard)","to":"Sudarshan.Gawade@nomura.com","cc":"rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in"},{"zone":"MUMBAI","client":"Ntt Global Data Centers & Cloud Infrastructure India Private Limited","location":"NTT DC 1, 2, 3 & 13 - Digha Guarding","to":"vishal.bandal@global.ntt","cc":"chaitanya11.shinde@global.ntt, Ramkrishna.Jagtap@nttdata.com, rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in, sachinkhabale@jaguarsecurity.in"},{"zone":"MUMBAI","client":"","location":"NTT Chandivali - SOC (Alliance)","to":"soudagar.narayankar@global.ntt","cc":"Ramkrishna.Jagtap@nttdata.com, ronak.thaker@nttdata.com, rituraj@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in, dhanaji@jaguarsecurity.in, aarif@jaguarsecurity.in, sachinkhabale@jaguarsecurity.in"},{"zone":"MUMBAI","client":"","location":"NTT Vikhroli - SOC (Alliance)","to":"","cc":""},{"zone":"MUMBAI","client":"","location":"NTT Mahape - SOC (Alliance)","to":"","cc":""},{"zone":"MUMBAI","client":"","location":"NTT Digha - SOC (Alliance)","to":"","cc":""},{"zone":"MUMBAI","client":"","location":"ICICI Mumbai","to":"","cc":""},{"zone":"PUNE","client":"CROWDSTRIKE INDIA PRIVATE LIMITED","location":"CROWDSTRIKE KHARADI","to":"rajat.kabdal@crowdstrike.com","cc":"rituraj@jaguarsecurity.in, maheshusnale@jaguarsecurity.in, arjunsingh@jaguarsecurity.in, rajendra@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in"},{"zone":"PUNE","client":"EPAM SYSTEMS INDIA PVT LTD","location":"EPAM BANER","to":"mayurnamdeo_kharatmal@epam.com","cc":"Kishore_Vemula@epam.com, kranthi_konda@epam.com, devendrakumar_thakur@epam.com, rituraj@jaguarsecurity.in, maheshusnale@jaguarsecurity.in, arjunsingh@jaguarsecurity.in, rajendra@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in"},{"zone":"PUNE","client":"UBS BUSINESS SOLUTIONS (INDIA) PVT LTD - PUNE","location":"UBS EON 1 & 2 ESCORT - KHARADI","to":"nikhil.shevate@ubs.com, ganesh.meher@ubs.com, manmohan-singh.sohal@ubs.com","cc":"ranjeet-zc.singh@ubs.com, prashant.morajkar@ubs.com, sh-security-ubsmumbai@ubs.com, sh-mumbai-security@ubs.com, sh-pune-security@ubs.com, SH-transport_eon1_pune@ubs.com, sh-transport_mumbai@ubs.com, rituraj@jaguarsecurity.in, maheshusnale@jaguarsecurity.in, arjunsingh@jaguarsecurity.in, rajendra@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in"},{"zone":"PUNE","client":"UBS BUSINESS SOLUTIONS (INDIA) PVT LTD - PUNE","location":"UBS EON 1 & EON 2 FLOOR - KHARADI","to":"vikash.vikash@ubs.com","cc":"vikas.rana@ubs.com, sachin.topkar@ubs.com, rituraj@jaguarsecurity.in, maheshusnale@jaguarsecurity.in, arjunsingh@jaguarsecurity.in, rajendra@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in"},{"zone":"PUNE","client":"IKEA INDIA PRIVATE LIMITED","location":"IKEA CHAKAN","to":"imranmohammadrafique.patel@ingka.ikea.com","cc":"ashok.gangawane@ingka.com, security.dcbms@ingka.com, rituraj@jaguarsecurity.in, maheshusnale@jaguarsecurity.in, arjunsingh@jaguarsecurity.in, rajendra@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in"},{"zone":"PUNE","client":"IKEA INDIA PRIVATE LIMITED","location":"IKEA STORE PHOENIX MARKETCITY - VIMAN NAGAR","to":"supriya.vitekar@ingka.ikea.com","cc":"rituraj@jaguarsecurity.in, maheshusnale@jaguarsecurity.in, arjunsingh@jaguarsecurity.in, rajendra@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in"},{"zone":"PUNE","client":"TIAA GLOBAL CAPABILITIES PRIVATE LIMITED","location":"TIAA KHARADI","to":"chhagan.chaudhari@in.tiaa.org","cc":"Amit.Patil@in.tiaa.org, AbdulKadar.Shaikh@in.tiaa.org, jss.tiaaops@jaguarsecurity.in, Shashanka.Sahu@tiaa.org, rituraj@jaguarsecurity.in, maheshusnale@jaguarsecurity.in, arjunsingh@jaguarsecurity.in, rajendra@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in"},{"zone":"PUNE","client":"WARNER BROS DISCOVERY","location":"WARNER BROS BANER","to":"gouri.shankar@wbd.com, APACSOC@wbd.com","cc":"shashank.walia@wbd.com, rituraj@jaguarsecurity.in, maheshusnale@jaguarsecurity.in, arjunsingh@jaguarsecurity.in, rajendra@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in"},{"zone":"PUNE","client":"INTUIT  INDIA PRODUCT DEVELOPMENT CENTRE PVT LTD","location":"INTUIT BANER","to":"Ramesh_K@intuit.com","cc":"rituraj@jaguarsecurity.in, maheshusnale@jaguarsecurity.in, arjunsingh@jaguarsecurity.in, rajendra@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in"},{"zone":"PUNE","client":"BROADCOM INC.","location":"BROADCOM BANER","to":"amol.bansode@broadcom.com","cc":"yogesh.padole@broadcom.com, nitin.chavan@broadcom.com, sumon.singha@broadcom.com, rituraj@jaguarsecurity.in, maheshusnale@jaguarsecurity.in, arjunsingh@jaguarsecurity.in, rajendra@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in"},{"zone":"PUNE","client":"BROADCOM INC.","location":"BROADCOM KHARADI","to":"nitin.chavan@broadcom.com","cc":"yogesh.padole@broadcom.com, amol.bansode@broadcom.com, sumon.singha@broadcom.com, rituraj@jaguarsecurity.in, maheshusnale@jaguarsecurity.in, arjunsingh@jaguarsecurity.in, rajendra@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in"},{"zone":"PUNE","client":"ANSR GLOBAL CORPORATION PVT. LTD*","location":"ANSR MIZUHO KHARADI","to":"Rajkumar.saxena@ansr.com","cc":"rituraj@jaguarsecurity.in, maheshusnale@jaguarsecurity.in, arjunsingh@jaguarsecurity.in, rajendra@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in"},{"zone":"PUNE","client":"SIEMENS TECHNOLOGY AND SERVICES PRIVATE LIMITED","location":"SIEMENS BANER","to":"samiksha.gunjawate.ext@siemens.com","cc":"shailaja.deshpande@siemens.com,, anil.surkutlawar.ext@siemens.com, rituraj@jaguarsecurity.in, maheshusnale@jaguarsecurity.in, arjunsingh@jaguarsecurity.in, rajendra@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in"},{"zone":"NASHIK","client":"SIEMENS LIMITED","location":"SIEMENS JALGAON","to":"alhaad.velhal@siemens.com","cc":"akshay.ikhankar@siemens.com, rituraj@jaguarsecurity.in, kailas@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in"},{"zone":"NASHIK","client":"BOSCH LIMITED*","location":"BOSCH","to":"shripadarun.kulkarni@in.bosch.com, GHANSHYAM.WABLE@in.bosch.com","cc":"rituraj@jaguarsecurity.in, kailas@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in"},{"zone":"NASHIK","client":"SIEMENS LIMITED","location":"SIEMENS NASHIK","to":"sanjay.lohar.ext@siemens.com","cc":"arun.pandey@siemens.com, suresh.ghadge.ext@siemens.com, mahesh.bhalerao.ext@siemens.com, vilas.pund.ext@siemens.com, rituraj@jaguarsecurity.in, kailas@jaguarsecurity.in, hanumant@jaguarsecurity.in, pawankumar@jaguarsecurity.in"},{"zone":"AHMEDABAD","client":"","location":"ADIDAS","to":"","cc":""},{"zone":"AHMEDABAD","client":"ADANI ENTERPRISES LTD","location":"ADANI","to":"sudarshan.singh@adani.com","cc":"tn.hemanathan@adani.com, Baljeet.Nagra@adani.com, rituraj@jaguarsecurity.in, venu@jaguarsecurity.in, ankush@jaguarsecurity.in, jabir@jaguarsecurity.in, pawankumar@jaguarsecurity.in, satishyadav@jaguarsecurity.in"},{"zone":"AHMEDABAD","client":"","location":"ICICI BANK","to":"","cc":""},{"zone":"AHMEDABAD","client":"","location":"BARCLAYS","to":"","cc":""},{"zone":"AHMEDABAD","client":"MICRON SEMICONDUCTOR TECHNOLOGY INDIA PRIVATE LIMITED","location":"MICRON","to":"hshekhawat@micron.com","cc":"rbakhshi@micron.com, rajneesh@jaguarsecurity.in, rituraj@jaguarsecurity.in, abhadouria@micron.com, hvemana@micron.com, ankhic@micron.com, Vivek@jaguarsecurity.in, jabir@jaguarsecurity.in, tusharsalvi@jaguarsecurity.in, ankush@jaguarsecurity.in"},{"zone":"AHMEDABAD","client":"","location":"P&G","to":"","cc":""}];
+
+let CUSTOM_CLIENTS = []; // clients added in-app via "+ Add Client", persisted in window.storage
+
+function getFullDirectory(){
+  return CLIENT_DIRECTORY.concat(CUSTOM_CLIENTS);
+}
+
+/* Fills any <select> with the merged (baked-in + custom) client/location directory, grouped by zone. */
+function populateDirectorySelect(sel){
+  if (!sel) return;
+  const keepFirst = sel.querySelector('option[value=""]');
+  sel.innerHTML = '';
+  if (keepFirst) sel.appendChild(keepFirst);
+  const dir = getFullDirectory();
+  const zones = {};
+  dir.forEach((entry, idx) => {
+    const z = entry.zone || 'OTHER';
+    if (!zones[z]) zones[z] = [];
+    zones[z].push(idx);
+  });
+  Object.keys(zones).forEach(zone => {
+    const grp = document.createElement('optgroup');
+    grp.label = zone;
+    zones[zone].forEach(idx => {
+      const e = dir[idx];
+      const opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = e.client ? `${e.location} — ${e.client}` : e.location;
+      grp.appendChild(opt);
+    });
+    sel.appendChild(grp);
+  });
+}
+
+function refreshAllDirectorySelects(){
+  populateDirectorySelect(el('clientDirSelect'));
+  populateDirectorySelect(el('visitClientSelect'));
+}
+
+/* ---- Add Client modal ---- */
+let addClientTarget = 'clientDirSelect'; // which select to refresh+select after saving
+function openAddClientModal(targetSelectId){
+  addClientTarget = targetSelectId || 'clientDirSelect';
+  el('newClientName').value = '';
+  el('newClientZone').value = '';
+  el('newClientLocation').value = '';
+  el('newClientTo').value = '';
+  el('newClientCc').value = '';
+  el('addClientModal').classList.add('show');
+}
+function closeAddClientModal(){
+  el('addClientModal').classList.remove('show');
+}
+async function saveNewClient(){
+  const location = el('newClientLocation').value.trim();
+  if (!location) { el('newClientLocation').focus(); return; }
+  const entry = {
+    zone: el('newClientZone').value.trim() || 'OTHER',
+    client: el('newClientName').value.trim(),
+    location: location,
+    to: el('newClientTo').value.trim(),
+    cc: el('newClientCc').value.trim()
+  };
+  CUSTOM_CLIENTS.push(entry);
+  try { await window.storage.set('custom-clients', JSON.stringify(CUSTOM_CLIENTS), false); } catch(e){}
+  refreshAllDirectorySelects();
+  const newIdx = getFullDirectory().length - 1;
+  const targetSel = el(addClientTarget);
+  if (targetSel) {
+    targetSel.value = String(newIdx);
+    if (addClientTarget === 'clientDirSelect') applyClientDirectorySelection();
+    if (addClientTarget === 'visitClientSelect') applyVisitClientSelection();
+  }
+  closeAddClientModal();
+}
+
+/* ---- Tab navigation: Training Report vs Site Visit Report ---- */
+function switchTab(tab){
+  const trainingBtn = el('tabBtnTraining');
+  const visitBtn = el('tabBtnVisit');
+  const trainingView = el('trainingView');
+  const visitView = el('visitView');
+  const actionBar = el('actionBarWrap');
+  if (tab === 'visit') {
+    trainingView.style.display = 'none';
+    visitView.style.display = '';
+    actionBar.style.display = 'none';
+    document.body.style.paddingBottom = '24px';
+    visitBtn.classList.add('active');
+    trainingBtn.classList.remove('active');
+  } else {
+    trainingView.style.display = '';
+    visitView.style.display = 'none';
+    actionBar.style.display = '';
+    document.body.style.paddingBottom = '132px';
+    trainingBtn.classList.add('active');
+    visitBtn.classList.remove('active');
+  }
+}
+
+let objectives = [];
+let outcomes = [];
+let shots = [null, null, null, null, null, null, null, null]; // dataURLs
+let logoDataUrl = null;
+let visitReports = []; // saved Site Visit Report entries (local log, powers the Dashboard)
+
+function el(id){ return document.getElementById(id); }
+
+async function init(){
+  // load any clients added in-app via "+ Add Client" (persisted across sessions)
+  try {
+    const rawCustom = await window.storage.get('custom-clients', false);
+    if (rawCustom) CUSTOM_CLIENTS = JSON.parse(rawCustom.value) || [];
+  } catch(e){ CUSTOM_CLIENTS = []; }
+
+  // populate client/location directory dropdowns (Training Report + Site Visit Report), grouped by zone
+  refreshAllDirectorySelects();
+
+  // load any saved visit reports (local log used by the Site Visit Report card + Dashboard)
+  try {
+    const rawVisits = await window.storage.get('visit-reports', false);
+    visitReports = rawVisits ? (JSON.parse(rawVisits.value) || []) : [];
+  } catch(e){ visitReports = []; }
+
+  // logo: load saved override or default
+  let saved = null;
+  try { saved = await window.storage.get('logo-override', false); } catch(e){}
+  logoDataUrl = saved ? saved.value : ('data:image/png;base64,' + DEFAULT_LOGO_B64);
+  el('logoPreview').src = logoDataUrl;
+  el('topLogo').src = logoDataUrl;
+
+  // objectives/outcomes: load draft or defaults
+  let draft = null;
+  try { draft = await window.storage.get('draft-report', false); } catch(e){}
+  if (draft) {
+    try {
+      const d = JSON.parse(draft.value);
+      el('clientName').value = d.clientName || '';
+      el('siteName').value = d.siteName || '';
+      el('trainingDate').value = d.trainingDate || '';
+      el('contactPerson').value = d.contactPerson || '';
+      el('trainingMode').value = d.trainingMode || 'Onsite';
+      el('trainerName').value = d.trainerName || '';
+      el('designation').value = d.designation || '';
+      el('trainingTopic').value = d.trainingTopic || '';
+      el('topicCategory').value = d.topicCategory || '';
+      el('totalAttendees').value = d.totalAttendees || '';
+      el('recipientEmail').value = d.recipientEmail || '';
+      el('ccEmail').value = d.ccEmail || '';
+      el('emailSubject').value = d.emailSubject || '';
+      el('emailBody').value = d.emailBody || '';
+      objectives = (d.objectives && d.objectives.length) ? d.objectives : [''];
+      outcomes = (d.outcomes && d.outcomes.length) ? d.outcomes : [''];
+    } catch(e){ objectives=['']; outcomes=['']; }
+  } else {
+    objectives = [''];
+    outcomes = [''];
+  }
+  renderLists();
+  renderShots();
+
+  // gmail direct-send config
+  let gmailCfg = null;
+  try { gmailCfg = await window.storage.get('gmail-config', false); } catch(e){}
+  if (gmailCfg) {
+    try {
+      const c = JSON.parse(gmailCfg.value);
+      el('gmailClientId').value = c.clientId || '';
+      el('gmailSignature').value = c.signature || '';
+      if (c.clientId) {
+        el('gmailSetupBadge').textContent = 'connected';
+        el('gmailSetupBadge').classList.remove('off');
+      }
+    } catch(e){}
+  }
+
+  // google sheet config
+  let sheetCfg = null;
+  try { sheetCfg = await window.storage.get('sheet-config', false); } catch(e){}
+  if (sheetCfg) {
+    try {
+      const s = JSON.parse(sheetCfg.value);
+      el('cfgSheetUrl').value = s.url || '';
+      updateSheetBadge(s.url);
+    } catch(e){}
+  }
+}
+
+/* ---- Objectives / Outcomes dynamic lists ---- */
+function renderLists(){
+  const oBody = el('objectivesBody');
+  oBody.innerHTML = '';
+  objectives.forEach((val, i) => {
+    const row = document.createElement('div');
+    row.className = 'list-row';
+    row.innerHTML = `<div class="num">${i+1}</div>
+      <textarea rows="1" placeholder="e.g. Understand the definition and types of workplace violence." data-idx="${i}"></textarea>
+      <button class="rm-btn" onclick="removeObjective(${i})" title="Remove">✕</button>`;
+    row.querySelector('textarea').value = val;
+    row.querySelector('textarea').addEventListener('input', e => objectives[i] = e.target.value);
+    oBody.appendChild(row);
+  });
+  const addO = document.createElement('button');
+  addO.className = 'add-btn';
+  addO.textContent = '+ Add Objective';
+  addO.onclick = addObjective;
+  oBody.appendChild(addO);
+
+  const kBody = el('outcomesBody');
+  kBody.innerHTML = '';
+  outcomes.forEach((val, i) => {
+    const row = document.createElement('div');
+    row.className = 'list-row';
+    row.innerHTML = `<div class="num">${i+1}</div>
+      <textarea rows="1" placeholder="e.g. Recognize and identify different types of workplace violence." data-idx="${i}"></textarea>
+      <button class="rm-btn" onclick="removeOutcome(${i})" title="Remove">✕</button>`;
+    row.querySelector('textarea').value = val;
+    row.querySelector('textarea').addEventListener('input', e => outcomes[i] = e.target.value);
+    kBody.appendChild(row);
+  });
+  const addK = document.createElement('button');
+  addK.className = 'add-btn';
+  addK.textContent = '+ Add Learning Outcome';
+  addK.onclick = addOutcome;
+  kBody.appendChild(addK);
+}
+function addObjective(){ objectives.push(''); renderLists(); }
+function removeObjective(i){ if(objectives.length>1){ objectives.splice(i,1); renderLists(); } }
+function addOutcome(){ outcomes.push(''); renderLists(); }
+function removeOutcome(i){ if(outcomes.length>1){ outcomes.splice(i,1); renderLists(); } }
+
+/* ---- Client / Location directory auto-fill ---- */
+function applyClientDirectorySelection(){
+  const idx = el('clientDirSelect').value;
+  const preview = el('clientMailPreview');
+  if (idx === '') { if (preview) preview.style.display = 'none'; return; }
+  const entry = getFullDirectory()[parseInt(idx, 10)];
+  if (!entry) return;
+  if (entry.client) el('clientName').value = entry.client;
+  el('siteName').value = entry.location;
+  if (entry.to) el('recipientEmail').value = entry.to;
+  if (entry.cc) el('ccEmail').value = entry.cc;
+  autoFillEmailText(true);
+  if (preview) {
+    if (entry.to || entry.cc) {
+      preview.style.display = 'block';
+      preview.innerHTML =
+        (entry.to ? '<div>📧 <b>Mail Received:</b> ' + escapeHtml(entry.to) + '</div>' : '') +
+        (entry.cc ? '<div>📋 <b>CC:</b> ' + escapeHtml(entry.cc) + '</div>' : '');
+    } else {
+      preview.style.display = 'block';
+      preview.innerHTML = '<div>No recipient/CC on file for this client yet — you can type them directly in the Send Report card below, or edit this client via ➕ Add Client.</div>';
+    }
+  }
+}
+
+/* ---- Site Visit Report ---- */
+function applyVisitClientSelection(){
+  const idx = el('visitClientSelect').value;
+  if (idx === '') return;
+  const entry = getFullDirectory()[parseInt(idx, 10)];
+  if (!entry) return;
+  el('visitLocation').value = entry.location || '';
+  el('visitRegion').value = entry.zone || '';
+}
+
+function calcVisitVacant(){
+  const a = parseFloat(el('visitAuthorized').value);
+  const d = parseFloat(el('visitActualDeployed').value);
+  if (!isNaN(a) && !isNaN(d)) el('visitVacant').value = Math.max(0, a - d);
+}
+
+function collectVisitEntry(){
+  return {
+    ts: new Date().toISOString(),
+    client: (function(){ const idx = el('visitClientSelect').value; const e = idx !== '' ? getFullDirectory()[parseInt(idx,10)] : null; return e && e.client ? e.client : ''; })(),
+    location: el('visitLocation').value,
+    region: el('visitRegion').value,
+    siteResponsibility: el('visitSiteResponsibility').value,
+    visitDate: el('visitDate').value,
+    authorized: el('visitAuthorized').value,
+    actualDeployed: el('visitActualDeployed').value,
+    vacant: el('visitVacant').value,
+    remarks: el('visitRemarks').value,
+    operations: el('visitOperations').value,
+    challenges: el('visitChallenges').value,
+    planOfAction: el('visitPlanOfAction').value,
+    newDevelopment: el('visitNewDevelopment').value,
+    escalations: el('visitEscalations').value,
+    pendingTasks: el('visitPendingTasks').value,
+    misc: el('visitMisc').value,
+    mom: el('visitMom').value,
+    visitPlanned: el('visitPlanned').value,
+    visitActual: el('visitActual').value,
+    siteVisitCompleted: el('visitSiteVisitCompleted').value,
+    nvPlanned: el('visitNvPlanned').value,
+    nvActual: el('visitNvActual').value,
+    nvCompleted: el('visitNvCompleted').value,
+    trainingPlanned: el('visitTrainingPlanned').value,
+    trainingActual: el('visitTrainingActual').value,
+    trainingCompleted: el('visitTrainingCompleted').value,
+    attendees: el('visitAttendees').value,
+    pending: el('visitPending').value,
+    trainingRemarks: el('visitTrainingRemarks').value
+  };
+}
+
+async function saveVisitReport(){
+  const statusEl = el('visitStatusMsg');
+  const idx = el('visitClientSelect').value;
+  if (idx === '' && !el('visitLocation').value.trim()) {
+    statusEl.textContent = '⚠ Select a client/location (or type one) before saving.';
+    statusEl.className = 'status err';
+    return;
+  }
+  statusEl.textContent = 'Saving visit report…';
+  statusEl.className = 'status busy';
+  const entry = collectVisitEntry();
+  visitReports.push(entry);
+  try {
+    await window.storage.set('visit-reports', JSON.stringify(visitReports), false);
+    statusEl.textContent = '✓ Visit report saved — it now appears in the Dashboard.';
+    statusEl.className = 'status ok';
+  } catch(e){
+    statusEl.textContent = '⚠ Could not save the visit report. Please try again.';
+    statusEl.className = 'status err';
+  }
+}
+
+function clearVisitForm(){
+  ['visitSiteResponsibility','visitDate','visitAuthorized','visitActualDeployed','visitVacant',
+   'visitRemarks','visitOperations','visitChallenges','visitPlanOfAction','visitNewDevelopment',
+   'visitEscalations','visitPendingTasks','visitMisc','visitMom','visitPlanned','visitActual',
+   'visitSiteVisitCompleted','visitNvPlanned','visitNvActual','visitNvCompleted','visitTrainingPlanned',
+   'visitTrainingActual','visitTrainingCompleted','visitAttendees','visitPending','visitTrainingRemarks']
+   .forEach(id => { const node = el(id); if (node) node.value = ''; });
+  el('visitClientSelect').value = '';
+  el('visitLocation').value = '';
+  el('visitRegion').value = '';
+  el('visitStatusMsg').textContent = '';
+  el('visitStatusMsg').className = 'status';
+}
+
+async function exportVisitReports(){
+  const statusEl = el('visitStatusMsg');
+  if (!visitReports.length) {
+    statusEl.textContent = 'No visit reports saved yet — save one first.';
+    statusEl.className = 'status err';
+    return;
+  }
+  statusEl.textContent = 'Building Excel file…';
+  statusEl.className = 'status busy';
+  try {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Visit Reports');
+    const headers = ['Visit Date','Client','Location','Region','Site Responsibility','Authorized','Actual Deployed','Vacant',
+      'Remarks','Operations','Challenges','Plan of Action','Any New Development','Escalations if Any','Pending Tasks','Misc./ Others',
+      'Discussion Points (MOM)','Visit Planned','Actual Visit','Site Visit Completed Till Date','NV Planned','NV Actual','NV Completed Till Date',
+      'Training Planned','Training Actual','Training Completed Till Date','Attendees','Pending','Training Remarks'];
+    ws.addRow(headers);
+    ws.getRow(1).font = { bold: true };
+    ws.columns.forEach(c => c.width = 18);
+    visitReports.forEach(v => {
+      ws.addRow([v.visitDate, v.client, v.location, v.region, v.siteResponsibility, v.authorized, v.actualDeployed, v.vacant,
+        v.remarks, v.operations, v.challenges, v.planOfAction, v.newDevelopment, v.escalations, v.pendingTasks, v.misc,
+        v.mom, v.visitPlanned, v.visitActual, v.siteVisitCompleted, v.nvPlanned, v.nvActual, v.nvCompleted,
+        v.trainingPlanned, v.trainingActual, v.trainingCompleted, v.attendees, v.pending, v.trainingRemarks]);
+    });
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Visit_Reports_' + new Date().toISOString().slice(0,10) + '.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    statusEl.textContent = '✓ Excel file downloaded (' + visitReports.length + ' visit report' + (visitReports.length === 1 ? '' : 's') + ').';
+    statusEl.className = 'status ok';
+  } catch(e){
+    console.error(e);
+    statusEl.textContent = '⚠ Could not build the Excel file.';
+    statusEl.className = 'status err';
+  }
+}
+
+/* ---- Screenshots ---- */
+function renderShots(){
+  const grid = el('shotsGrid');
+  grid.innerHTML = '';
+  shots.forEach((src, i) => {
+    const box = document.createElement('div');
+    box.className = 'shot-box';
+    if (src) {
+      box.innerHTML = `<img src="${src}"><button class="rm" onclick="removeShot(event,${i})">✕</button>`;
+    } else {
+      box.innerHTML = `<div class="ph">📷<br>Tap to add photo ${i+1}</div>
+        <input type="file" accept="image/*" onchange="handleShotUpload(event,${i})">`;
+      box.onclick = () => box.querySelector('input').click();
+    }
+    grid.appendChild(box);
+  });
+}
+function handleShotUpload(evt, i){
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => { shots[i] = e.target.result; renderShots(); };
+  reader.readAsDataURL(file);
+}
+function removeShot(evt, i){
+  evt.stopPropagation();
+  shots[i] = null;
+  renderShots();
+}
+
+/* ---- Logo ---- */
+function handleLogoUpload(evt){
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    logoDataUrl = e.target.result;
+    el('logoPreview').src = logoDataUrl;
+    el('topLogo').src = logoDataUrl;
+    try { await window.storage.set('logo-override', logoDataUrl, false); } catch(err){}
+  };
+  reader.readAsDataURL(file);
+}
+async function resetLogo(){
+  logoDataUrl = 'data:image/png;base64,' + DEFAULT_LOGO_B64;
+  el('logoPreview').src = logoDataUrl;
+  el('topLogo').src = logoDataUrl;
+  try { await window.storage.delete('logo-override', false); } catch(e){}
+}
+
+/* ---- Gmail Setup modal ---- */
+function openGmailSetup(){ el('gmailSetupModal').classList.add('show'); }
+function closeGmailSetup(){ el('gmailSetupModal').classList.remove('show'); }
+async function saveGmailSetup(){
+  const cfg = {
+    clientId: el('gmailClientId').value.trim(),
+    signature: el('gmailSignature').value
+  };
+  try { await window.storage.set('gmail-config', JSON.stringify(cfg), false); } catch(e){}
+  if (cfg.clientId) {
+    el('gmailSetupBadge').textContent = 'connected';
+    el('gmailSetupBadge').classList.remove('off');
+  } else {
+    el('gmailSetupBadge').textContent = 'not set';
+    el('gmailSetupBadge').classList.add('off');
+  }
+  gmailAccessToken = null; // force re-auth if the client ID changed
+  closeGmailSetup();
+}
+async function getGmailConfig(){
+  try {
+    const raw = await window.storage.get('gmail-config', false);
+    return raw ? JSON.parse(raw.value) : null;
+  } catch(e){ return null; }
+}
+
+/* ---- Gmail direct send via Gmail API (OAuth, client-side) ---- */
+let gmailTokenClient = null;
+let gmailAccessToken = null;
+
+function ensureGmailAuth(clientId){
+  return new Promise((resolve, reject) => {
+    if (!window.google || !google.accounts || !google.accounts.oauth2) {
+      reject(new Error('Google sign-in library did not load — check your internet connection and try again.'));
+      return;
+    }
+    gmailTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: 'https://www.googleapis.com/auth/gmail.send',
+      callback: (resp) => {
+        if (resp.error) { reject(new Error(resp.error)); return; }
+        gmailAccessToken = resp.access_token;
+        resolve(resp.access_token);
+      },
+      error_callback: (err) => { reject(new Error((err && err.type) || 'Google sign-in was cancelled or failed.')); }
+    });
+    gmailTokenClient.requestAccessToken({ prompt: gmailAccessToken ? '' : 'consent' });
+  });
+}
+
+function base64UrlEncodeUnicode(str){
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  bytes.forEach(b => binary += String.fromCharCode(b));
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function blobToBase64(blob){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function buildMimeMessage({ to, cc, subject, body, attachmentName, attachmentBase64 }){
+  const boundary = 'trg_boundary_' + Date.now();
+  let mime = '';
+  mime += `To: ${to}\r\n`;
+  if (cc) mime += `Cc: ${cc}\r\n`;
+  mime += `Subject: =?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=\r\n`;
+  mime += `MIME-Version: 1.0\r\n`;
+  mime += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`;
+  mime += `--${boundary}\r\n`;
+  mime += `Content-Type: text/plain; charset="UTF-8"\r\n\r\n`;
+  mime += `${body}\r\n\r\n`;
+  if (attachmentBase64) {
+    mime += `--${boundary}\r\n`;
+    mime += `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; name="${attachmentName}"\r\n`;
+    mime += `Content-Disposition: attachment; filename="${attachmentName}"\r\n`;
+    mime += `Content-Transfer-Encoding: base64\r\n\r\n`;
+    mime += attachmentBase64.replace(/.{76}(?=.)/g, '$&\r\n') + '\r\n\r\n';
+  }
+  mime += `--${boundary}--`;
+  return mime;
+}
+
+async function sendGmailDirect({ to, cc, subject, body, attachmentName, attachmentBlob }){
+  const attachmentBase64 = attachmentBlob ? await blobToBase64(attachmentBlob) : null;
+  const raw = buildMimeMessage({ to, cc, subject, body, attachmentName, attachmentBase64 });
+  const encoded = base64UrlEncodeUnicode(raw);
+  const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + gmailAccessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ raw: encoded })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err.error && err.error.message) || ('Gmail API error ' + res.status));
+  }
+  return res.json();
+}
+
+// Opens a real Gmail compose window as a fallback when direct API send isn't set up or fails.
+function openGmailCompose(toEmail, ccEmail, subject, body){
+  let url = 'https://mail.google.com/mail/?view=cm&fs=1'
+    + '&to=' + encodeURIComponent(toEmail)
+    + '&su=' + encodeURIComponent(subject)
+    + '&body=' + encodeURIComponent(body);
+  if (ccEmail) url += '&cc=' + encodeURIComponent(ccEmail);
+  window.open(url, '_blank');
+}
+
+// Tries direct Gmail API send first (if configured); falls back to opening a compose window.
+async function sendViaGmailFlow({ to, cc, subject, body, attachmentName, attachmentBlob }){
+  const cfg = await getGmailConfig();
+  const fullBody = body + (cfg && cfg.signature ? ('\n\n' + cfg.signature) : '');
+  if (cfg && cfg.clientId) {
+    try {
+      await ensureGmailAuth(cfg.clientId);
+      await sendGmailDirect({ to, cc, subject, body: fullBody, attachmentName, attachmentBlob });
+      return { sent: true, method: 'api' };
+    } catch (err) {
+      console.error('Gmail API send failed, falling back to compose window:', err);
+      openGmailCompose(to, cc, subject, body + `\n\n(Attach "${attachmentName}" before sending.)`);
+      return { sent: false, method: 'compose', error: err };
+    }
+  }
+  openGmailCompose(to, cc, subject, body + `\n\n(Attach "${attachmentName}" before sending.)`);
+  return { sent: false, method: 'compose' };
+}
+
+/* ---- Draft persistence ---- */
+async function saveDraft(){
+  const d = {
+    clientName: el('clientName').value,
+    siteName: el('siteName').value,
+    trainingDate: el('trainingDate').value,
+    contactPerson: el('contactPerson').value,
+    trainingMode: el('trainingMode').value,
+    trainerName: el('trainerName').value,
+    designation: el('designation').value,
+    trainingTopic: el('trainingTopic').value,
+    topicCategory: el('topicCategory').value,
+    totalAttendees: el('totalAttendees').value,
+    recipientEmail: el('recipientEmail').value,
+    ccEmail: el('ccEmail').value,
+    emailSubject: el('emailSubject').value,
+    emailBody: el('emailBody').value,
+    objectives, outcomes
+  };
+  try { await window.storage.set('draft-report', JSON.stringify(d), false); } catch(e){}
+}
+
+/* ---- Status helper ---- */
+function setStatus(msg, type){
+  const s = el('statusMsg');
+  s.textContent = msg;
+  s.className = 'status' + (type ? (' '+type) : '');
+}
+
+/* ---- Excel generation ---- */
+async function buildWorkbook(data){
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Training Report', { views: [{ showGridLines: false }] });
+
+  ws.columns = [
+    { width: 4.3 },{ width: 27.5 },{ width: 8.7 },{ width: 10 },
+    { width: 37.5 },{ width: 27.8 },{ width: 17.3 },{ width: 20 },
+    { width: 6.1 },{ width: 8.7 }
+  ];
+
+  const WHITE = 'FFFFFFFF', INK = 'FF1C1C1C';
+  const thin = { style: 'thin', color: { argb: 'FFBFBFBF' } };
+  const medium = { style: 'medium', color: { argb: 'FF808080' } };
+
+  function mergeSet(range, opts){
+    ws.mergeCells(range);
+    const first = range.split(':')[0];
+    const cell = ws.getCell(first);
+    if (opts.value !== undefined) cell.value = opts.value;
+    if (opts.font) cell.font = opts.font;
+    if (opts.fill) cell.fill = opts.fill;
+    if (opts.align) cell.alignment = opts.align;
+    if (opts.border) cell.border = opts.border;
+    return cell;
+  }
+
+  // Title
+  ws.getRow(1).height = 33.6;
+  ws.getRow(2).height = 7.95;
+  mergeSet('B1:H2', {
+    value: 'TRAINING REPORT',
+    font: { name: 'Cambria', size: 16, bold: true, color: { argb: WHITE } },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7E0000' } },
+    align: { horizontal: 'center', vertical: 'middle' }
+  });
+
+  // Section header
+  ws.getRow(5).height = 18;
+  mergeSet('B5:H5', {
+    value: 'Training Particulars',
+    font: { name: 'Cambria', size: 14, bold: true, color: { argb: WHITE } },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0070C0' } },
+    align: { horizontal: 'center', vertical: 'middle' }
+  });
+
+  const labelFont = { name: 'Cambria', size: 12, bold: true, color: { argb: INK } };
+  const valueFont = { name: 'Cambria', size: 11, bold: true, color: { argb: INK } };
+  const labelFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
+
+  const pairs = [
+    [6, 'Client Name                     :', data.clientName, 'Trainer Name               :', data.trainerName],
+    [7, 'Site Name  & Location  :', data.siteName, 'Designation                  :', data.designation],
+    [8, 'Date                                    :', data.trainingDate, 'Training Topic              :', data.trainingTopic],
+    [9, 'Contact Person at Site   :', data.contactPerson, 'Topic Category             :', data.topicCategory],
+    [10, 'Training Mode                 :', data.trainingMode, 'Total Attendees            :', data.totalAttendees]
+  ];
+  pairs.forEach(([row, lb1, v1, lb2, v2]) => {
+    ws.getRow(row).height = 15.75;
+    const b = ws.getCell('B'+row);
+    b.value = lb1; b.font = labelFont; b.fill = labelFill;
+    b.alignment = { horizontal: 'left', vertical: 'middle' };
+    mergeSet(`C${row}:E${row}`, { value: v1, font: valueFont, align: { horizontal: 'left', vertical: 'middle' } });
+    const f = ws.getCell('F'+row);
+    f.value = lb2; f.font = labelFont; f.fill = labelFill;
+    f.alignment = { horizontal: 'left', vertical: 'middle' };
+    mergeSet(`G${row}:H${row}`, { value: v2, font: valueFont, align: { horizontal: 'left', vertical: 'middle' } });
+  });
+
+  // Screenshots header
+  ws.getRow(11).height = 18;
+  mergeSet('B11:H11', {
+    value: 'Training Screenshots',
+    font: { name: 'Cambria', size: 14, bold: true, color: { argb: WHITE } },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0070C0' } },
+    align: { horizontal: 'center', vertical: 'middle' }
+  });
+  for (let r = 12; r <= 29; r++) ws.getRow(r).height = 15;
+
+  // Screenshot images — auto-arrange into a grid across rows 12-29, cols B-H, based on how
+  // many photos were actually provided (1 up to 8). Every cell is the same size with the same
+  // gap around it, so spacing between photos always stays even regardless of count.
+  // Each photo is fit ("contain") inside its cell, preserving aspect ratio — never stretched/cropped — and centered.
+  const COL_WIDTHS = [4.3, 27.5, 8.7, 10, 37.5, 27.8, 17.3, 20, 6.1, 8.7]; // A..J, character units
+  const colPx = COL_WIDTHS.map(w => Math.round(w * 7 + 5));
+  function pxToColFrac(xPx) {
+    let acc = 0;
+    for (let i = 0; i < colPx.length; i++) {
+      if (xPx < acc + colPx[i] || i === colPx.length - 1) {
+        return i + (xPx - acc) / colPx[i];
+      }
+      acc += colPx[i];
+    }
+  }
+  const ROW_H_PX = 20; // 15pt rows 12-29 => ~20px each
+  const GAP = 8; // px gap around each photo inside its cell
+
+  // Absolute pixel bounds of the screenshot area (B..H horizontally, rows 12-29 vertically)
+  const areaLeftPx = colPx[0]; // start of column B
+  const areaWidthPx = colPx.slice(1, 8).reduce((a, b) => a + b, 0); // B..H
+  const areaHeightPx = ROW_H_PX * 18; // rows 12-29 = 18 rows
+
+  const activeShots = data.shots.filter(Boolean);
+  const shotCount = activeShots.length;
+  const cols = Math.max(1, Math.ceil(Math.sqrt(shotCount)));
+  const rows = Math.max(1, Math.ceil(shotCount / cols));
+  const cellW = areaWidthPx / cols;
+  const cellH = areaHeightPx / rows;
+
+  const boxes = [];
+  for (let i = 0; i < shotCount; i++) {
+    const c = i % cols, r = Math.floor(i / cols);
+    boxes.push({
+      xStart: areaLeftPx + c * cellW + GAP,
+      xEnd: areaLeftPx + (c + 1) * cellW - GAP,
+      yStart: r * cellH + GAP,
+      yEnd: (r + 1) * cellH - GAP
+    });
+  }
+
+  function loadImageDims(dataUrl) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ w: img.naturalWidth || 800, h: img.naturalHeight || 600 });
+      img.onerror = () => resolve({ w: 800, h: 600 });
+      img.src = dataUrl;
+    });
+  }
+
+  for (let i = 0; i < activeShots.length; i++) {
+    const src = activeShots[i];
+    const match = src.match(/^data:image\/(\w+);base64,(.*)$/);
+    if (!match) continue;
+    let ext = match[1] === 'jpg' ? 'jpeg' : match[1];
+    if (!['png', 'jpeg', 'gif'].includes(ext)) ext = 'jpeg';
+
+    const dims = await loadImageDims(src);
+    const box = boxes[i];
+    const boxW = box.xEnd - box.xStart;
+    const boxH = box.yEnd - box.yStart;
+    const scale = Math.min(boxW / dims.w, boxH / dims.h);
+    const targetW = dims.w * scale;
+    const targetH = dims.h * scale;
+    const offsetX = box.xStart + (boxW - targetW) / 2;
+    const offsetY = box.yStart + (boxH - targetH) / 2;
+
+    const colFrac = pxToColFrac(offsetX);
+    const rowFrac = 11 + offsetY / ROW_H_PX; // row 11 (0-indexed) = row 12 in the sheet, start of screenshot grid
+
+    const imgId = wb.addImage({ base64: match[2], extension: ext });
+    ws.addImage(imgId, { tl: { col: colFrac, row: rowFrac }, ext: { width: targetW, height: targetH } });
+  }
+
+  // Objectives / Outcomes
+  const headerRow = 31;
+  ws.getRow(headerRow).height = 15.6;
+  mergeSet(`B${headerRow}:E${headerRow}`, {
+    value: 'Training  Objectives',
+    font: { name: 'Cambria', size: 11, bold: true, color: { argb: INK } },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFBFBFBF' } },
+    align: { horizontal: 'center', vertical: 'middle' },
+    border: { left: medium, top: medium, right: medium, bottom: medium }
+  });
+  mergeSet(`F${headerRow}:H${headerRow}`, {
+    value: 'Learning Outcomes',
+    font: { name: 'Cambria', size: 11, bold: true, color: { argb: INK } },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCFE2F3' } },
+    align: { horizontal: 'center', vertical: 'middle' },
+    border: { left: medium, top: medium, right: medium, bottom: medium }
+  });
+
+  const n = Math.max(data.objectives.length, data.outcomes.length);
+  for (let i = 0; i < n; i++) {
+    const row = headerRow + 1 + i;
+    ws.getRow(row).height = 30;
+    const objText = data.objectives[i] || '';
+    const outText = data.outcomes[i] || '';
+    mergeSet(`B${row}:E${row}`, {
+      value: objText,
+      font: { name: 'Calibri', size: 11, color: { argb: INK } },
+      align: { horizontal: 'left', vertical: 'middle', wrapText: true },
+      border: { left: thin, top: thin, right: thin, bottom: thin }
+    });
+    mergeSet(`F${row}:H${row}`, {
+      value: outText,
+      font: { name: 'Calibri', size: 11, color: { argb: INK } },
+      align: { horizontal: 'left', vertical: 'middle', wrapText: true },
+      border: { left: thin, top: thin, right: thin, bottom: thin }
+    });
+  }
+
+  // Logo image top-left
+  if (data.logoDataUrl) {
+    const m = data.logoDataUrl.match(/^data:image\/(\w+);base64,(.*)$/);
+    if (m) {
+      let ext = m[1] === 'jpg' ? 'jpeg' : m[1];
+      if (!['png','jpeg','gif'].includes(ext)) ext = 'png';
+      const logoId = wb.addImage({ base64: m[2], extension: ext });
+      ws.addImage(logoId, { tl: { col: 1, row: 0 }, ext: { width: 130, height: 59 } });
+    }
+  }
+
+  ws.pageSetup.orientation = 'portrait';
+  ws.views = [{ showGridLines: false }];
+
+  return wb;
+}
+
+function fileSafe(s){
+  return (s || 'Report').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g,'');
+}
+
+async function generateAndSend(){
+  const data = {
+    clientName: el('clientName').value.trim(),
+    siteName: el('siteName').value.trim(),
+    trainingDate: el('trainingDate').value.trim(),
+    contactPerson: el('contactPerson').value.trim(),
+    trainingMode: el('trainingMode').value,
+    trainerName: el('trainerName').value.trim(),
+    designation: el('designation').value.trim(),
+    trainingTopic: el('trainingTopic').value.trim(),
+    topicCategory: el('topicCategory').value.trim(),
+    totalAttendees: el('totalAttendees').value.trim(),
+    recipientEmail: el('recipientEmail').value.trim(),
+    ccEmail: el('ccEmail').value.trim(),
+    objectives: objectives.filter(x => x.trim() !== ''),
+    outcomes: outcomes.filter(x => x.trim() !== ''),
+    shots, logoDataUrl
+  };
+
+  if (!data.clientName || !data.trainingTopic || !data.trainingDate) {
+    setStatus('Please fill at least Client Name, Date and Training Topic.', 'err');
+    return;
+  }
+
+  await autoFillEmailText(false); // fill subject/body if still empty, keep any manual edits
+
+  const btn = el('goBtn');
+  btn.disabled = true;
+  setStatus('Building Excel report…', 'busy');
+  await saveDraft();
+
+  let fname = '';
+  let excelBlob = null;
+  try {
+    if (typeof ExcelJS === 'undefined') throw new Error('Excel library failed to load. Check your internet connection and reload the page.');
+    const wb = await buildWorkbook(data);
+    const buffer = await wb.xlsx.writeBuffer();
+    excelBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    fname = `Training_Report_${fileSafe(data.trainingDate)}_${fileSafe(data.clientName)}.xlsx`;
+
+    const url = URL.createObjectURL(excelBlob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  } catch (err) {
+    console.error(err);
+    setStatus('❌ Could not build the Excel file: ' + (err && err.message ? err.message : 'unknown error'), 'err');
+    btn.disabled = false;
+    return;
+  }
+
+  setStatus('Excel downloaded ✓. Logging & sending email…', 'busy');
+  const sheetResult = await logToGoogleSheet(data);
+
+  if (!data.recipientEmail) {
+    setStatus('Excel downloaded ✓' + (sheetResult.sent ? ' + Sheet row added ✓' : '') + '. Add a recipient email above to send it.', sheetResult.sent ? 'ok' : 'err');
+    btn.disabled = false;
+    return;
+  }
+
+  try {
+    const subject = el('emailSubject').value.trim() || composeSubject(data);
+    const body = el('emailBody').value.trim() || composeBody(data, {});
+    const result = await sendViaGmailFlow({
+      to: data.recipientEmail, cc: data.ccEmail, subject, body,
+      attachmentName: fname, attachmentBlob: excelBlob
+    });
+    if (result.method === 'api' && result.sent) {
+      setStatus('✅ Excel downloaded' + (sheetResult.sent ? ' + Sheet row added' : '') + ' — email sent directly from your Gmail, with the Excel attached!', 'ok');
+    } else {
+      setStatus('Excel downloaded ✓' + (sheetResult.sent ? ' + Sheet row added ✓' : '') + ' — Gmail opened in a new tab. Attach the Excel file and hit Send.' + (result.error ? ' (Direct send failed: ' + result.error.message + ')' : ''), 'ok');
+    }
+  } catch (err) {
+    console.error(err);
+    setStatus('⚠️ Excel downloaded ✓, but sending failed: ' + (err && err.message ? err.message : 'unknown error'), 'err');
+  }
+  btn.disabled = false;
+}
+
+/* ---- AI auto-fill for Objectives & Outcomes ---- */
+let lastGeneratedTopic = '';
+let aiBusy = false;
+let pptText = '';
+let pptFileName = '';
+
+function setAiStatus(msg, type){
+  const s = el('aiStatus');
+  s.textContent = msg;
+  s.className = 'helptext' + (type ? (' '+type) : '');
+}
+
+/* ---- Training PPT upload — extract slide text client-side for AI grounding ---- */
+async function extractPptSlideTexts(file){
+  if (typeof JSZip === 'undefined') throw new Error('PPT reader library failed to load. Check your internet connection and reload.');
+  const zip = await JSZip.loadAsync(file);
+  const slideFiles = Object.keys(zip.files)
+    .filter(name => /^ppt\/slides\/slide\d+\.xml$/.test(name))
+    .sort((a, b) => {
+      const na = parseInt(a.match(/slide(\d+)\.xml/)[1], 10);
+      const nb = parseInt(b.match(/slide(\d+)\.xml/)[1], 10);
+      return na - nb;
+    });
+  if (!slideFiles.length) throw new Error('No slides found — is this a valid .pptx file?');
+  const parser = new DOMParser();
+  const slidesText = [];
+  for (const name of slideFiles) {
+    const xml = await zip.files[name].async('text');
+    const doc = parser.parseFromString(xml, 'application/xml');
+    const nodes = doc.getElementsByTagName('a:t');
+    const parts = [];
+    for (let i = 0; i < nodes.length; i++) {
+      const t = nodes[i].textContent.trim();
+      if (t) parts.push(t);
+    }
+    slidesText.push(parts.join(' '));
+  }
+  return slidesText;
+}
+
+async function handlePptUpload(evt){
+  const file = evt.target.files[0];
+  if (!file) return;
+  const statusEl = el('pptStatus');
+  statusEl.textContent = 'Reading ' + file.name + '…';
+  statusEl.className = 'helptext busy';
+  try {
+    const slides = await extractPptSlideTexts(file);
+    const nonEmpty = slides.map((t, i) => t ? `Slide ${i+1}: ${t}` : null).filter(Boolean);
+    pptText = nonEmpty.join('\n');
+    pptFileName = file.name;
+    const wordCount = pptText.split(/\s+/).filter(Boolean).length;
+    if (!wordCount) {
+      statusEl.textContent = '⚠️ Loaded "' + file.name + '" but found no readable text (image-only slides?). AI will fall back to the Training Topic field.';
+      statusEl.className = 'helptext err';
+    } else {
+      statusEl.textContent = `✓ Loaded "${file.name}" — ${slides.length} slides, ~${wordCount} words extracted. Click "Regenerate with AI" below to generate objectives & outcomes from it.`;
+      statusEl.className = 'helptext ok';
+    }
+    el('pptRemoveBtn').style.display = 'inline-block';
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = '⚠️ Could not read this PPT: ' + (err && err.message ? err.message : 'unknown error') + '. Make sure it is a .pptx file (older .ppt format is not supported).';
+    statusEl.className = 'helptext err';
+    pptText = ''; pptFileName = '';
+    el('pptRemoveBtn').style.display = 'none';
+  }
+}
+
+function removePpt(){
+  pptText = ''; pptFileName = '';
+  el('pptFileInput').value = '';
+  el('pptStatus').textContent = 'Upload the training .pptx used for this session — the AI will read the slide text and base the objectives & outcomes on it instead of just the topic title.';
+  el('pptStatus').className = 'helptext';
+  el('pptRemoveBtn').style.display = 'none';
+}
+
+async function autoFillFromTopic(force){
+  const topic = el('trainingTopic').value.trim();
+  if (!topic && !pptText) {
+    if (force) setAiStatus('Type a Training Topic or upload a Training PPT first, then click Regenerate.', 'err');
+    return;
+  }
+  if (aiBusy) return;
+  const sourceKey = topic + '|' + pptFileName;
+  if (!force) {
+    if (sourceKey === lastGeneratedTopic) return;
+    const hasContent = objectives.some(o => o.trim()) || outcomes.some(o => o.trim());
+    if (hasContent) {
+      setAiStatus('✨ Topic/PPT changed — click "Regenerate with AI" above to refresh objectives & outcomes.', '');
+      return;
+    }
+  }
+
+  aiBusy = true;
+  document.querySelectorAll('.ai-btn').forEach(b => b.disabled = true);
+  setAiStatus('✨ Generating 6 objectives & 6 outcomes' + (pptText ? ' from "' + pptFileName + '"…' : ' for "' + topic + '"…'), 'busy');
+
+  const category = el('topicCategory').value.trim();
+  const mode = el('trainingMode').value;
+
+  try {
+    let prompt = 'You are writing content for a corporate security-guard training report (client: Jaguar Security Services, a security services company). ';
+    if (topic) prompt += 'Training Topic: "' + topic + '"' + (category ? ' (Category: ' + category + ')' : '') + '. ';
+    prompt += 'Training Mode: ' + mode + '.\n';
+    if (pptText) {
+      const excerpt = pptText.length > 6000 ? pptText.slice(0, 6000) + '\n...(truncated)' : pptText;
+      prompt += 'Base the objectives and outcomes on the ACTUAL CONTENT of this training PPT (extracted slide text below) rather than just the topic title — reflect the specific points, procedures and steps it actually covers:\n'
+        + '---PPT SLIDE TEXT START---\n' + excerpt + '\n---PPT SLIDE TEXT END---\n';
+    }
+    prompt += 'Write exactly 6 concise Training Objectives (what the training aims to cover) and exactly 6 Learning Outcomes (what participants will be able to do by the end of the training), in the same professional tone as a corporate training document. Each point should be one clear sentence, no numbering, no bullet characters.\n'
+      + 'Return ONLY valid JSON, no markdown fences, no extra commentary, in exactly this shape:\n'
+      + '{"objectives":["...","...","...","...","...","..."],"outcomes":["...","...","...","...","...","..."]}';
+
+    const response = await fetch("/.netlify/functions/generate-content", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt })
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.error || ('AI request failed (' + response.status + ')'));
+    }
+    const data = await response.json();
+    const text = (data.content || []).map(b => b.text || '').join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    if (Array.isArray(parsed.objectives) && parsed.objectives.length) {
+      objectives = parsed.objectives.filter(x => x && x.trim()).slice(0, 8);
+    }
+    if (Array.isArray(parsed.outcomes) && parsed.outcomes.length) {
+      outcomes = parsed.outcomes.filter(x => x && x.trim()).slice(0, 8);
+    }
+    if (!objectives.length) objectives = [''];
+    if (!outcomes.length) outcomes = [''];
+    renderLists();
+    lastGeneratedTopic = sourceKey;
+    setAiStatus('✨ Filled ' + objectives.length + ' objectives & ' + outcomes.length + ' outcomes' + (pptText ? ' from the PPT' : '') + ' — edit freely if needed.', 'ok');
+  } catch (err) {
+    console.error(err);
+    setAiStatus('⚠️ AI auto-fill failed (' + (err && err.message ? err.message : 'network error') + '). You can type objectives/outcomes manually, or try Regenerate again.', 'err');
+  }
+  aiBusy = false;
+  document.querySelectorAll('.ai-btn').forEach(b => b.disabled = false);
+}
+
+/* ---- Email Subject/Body auto-fill ---- */
+function composeSubject(d){
+  return `Training Report - ${d.trainingTopic || 'Training'} - ${d.clientName || ''} - ${d.trainingDate || ''}`
+    .replace(/\s*-\s*$/,'').replace(/-\s*-/g,'-').trim();
+}
+function composeBody(d, cfg){
+  const instructor = [d.designation, d.trainerName].filter(Boolean).join(' - ');
+  const lines = [];
+  lines.push('Dear Sir,');
+  lines.push('');
+  lines.push('Greetings from Jaguar !');
+  lines.push('');
+  lines.push(`At the outset let me convey our sincere gratitude to you and your management for rendering appropriate support for conducting an *${d.trainingMode || 'Onsite/ Online'}* Training session at your Premises`);
+  lines.push('');
+  lines.push('The details are as follows:');
+  lines.push('');
+  lines.push('§  Name of the Organisation: ' + (d.clientName || ''));
+  lines.push('');
+  lines.push('§  Location: ' + (d.siteName || ''));
+  lines.push('');
+  lines.push('§  Date: ' + (d.trainingDate || ''));
+  lines.push('');
+  lines.push('§  Name of the Instructor / Designation: ' + instructor);
+  lines.push('');
+  lines.push('§  Total number of attendees: ' + (d.totalAttendees || ''));
+  lines.push('');
+  lines.push('§  Topics Covered: ' + (d.trainingTopic || ''));
+  lines.push('');
+  lines.push('');
+  lines.push('Since training is a continuous process, we need to ensure regular proper training with relevant and updated curriculum. For the same we need your guidance and support. If you have suggestions /value addition or specific requirements pertaining to training, please feel free.');
+  lines.push('');
+  lines.push('Regards,');
+  lines.push((cfg && cfg.senderName) ? cfg.senderName : 'Jaguar Security Services');
+  return lines.join('\n');
+}
+function collectFormData(){
+  return {
+    clientName: el('clientName').value.trim(),
+    siteName: el('siteName').value.trim(),
+    trainingDate: el('trainingDate').value.trim(),
+    contactPerson: el('contactPerson').value.trim(),
+    trainingMode: el('trainingMode').value,
+    trainerName: el('trainerName').value.trim(),
+    designation: el('designation').value.trim(),
+    trainingTopic: el('trainingTopic').value.trim(),
+    topicCategory: el('topicCategory').value.trim(),
+    totalAttendees: el('totalAttendees').value.trim(),
+    objectives: objectives.filter(x => x.trim() !== ''),
+    outcomes: outcomes.filter(x => x.trim() !== '')
+  };
+}
+async function autoFillEmailText(force){
+  const d = collectFormData();
+  const subjEmpty = !el('emailSubject').value.trim();
+  const bodyEmpty = !el('emailBody').value.trim();
+  if (!force && !subjEmpty && !bodyEmpty) return;
+  let cfg = null;
+  try {
+    const cfgRaw = await window.storage.get('gmail-config', false);
+    if (cfgRaw) cfg = JSON.parse(cfgRaw.value);
+  } catch(e){}
+  if (force || subjEmpty) el('emailSubject').value = composeSubject(d);
+  if (force || bodyEmpty) el('emailBody').value = composeBody(d, cfg);
+}
+
+/* ---- Google Sheet setup ---- */
+function openSheetSetup(){ el('sheetModal').classList.add('show'); }
+function closeSheetSetup(){ el('sheetModal').classList.remove('show'); }
+async function saveSheetSetup(){
+  const url = el('cfgSheetUrl').value.trim();
+  try { await window.storage.set('sheet-config', JSON.stringify({ url }), false); } catch(e){}
+  updateSheetBadge(url);
+  closeSheetSetup();
+}
+function updateSheetBadge(url){
+  const note = el('sheetStatusNote');
+  if (url) {
+    note.textContent = '✅ Connected — every report will also be logged as a row in your Google Sheet.';
+  } else {
+    note.textContent = 'Not connected — every report you generate can also be added as a row in a Google Sheet, so you get one running log of all trainings. Tap Setup to connect (free, ~3 min, one-time).';
+  }
+}
+async function logToGoogleSheet(data){
+  let cfg = null;
+  try {
+    const raw = await window.storage.get('sheet-config', false);
+    if (raw) cfg = JSON.parse(raw.value);
+  } catch(e){}
+  if (!cfg || !cfg.url) return { skipped: true };
+  try {
+    await fetch(cfg.url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        clientName: data.clientName, siteName: data.siteName, trainingDate: data.trainingDate,
+        contactPerson: data.contactPerson, trainingMode: data.trainingMode,
+        trainerName: data.trainerName, designation: data.designation,
+        trainingTopic: data.trainingTopic, topicCategory: data.topicCategory,
+        totalAttendees: data.totalAttendees,
+        objectives: data.objectives.join(' | '),
+        outcomes: data.outcomes.join(' | '),
+        recipientEmail: data.recipientEmail
+      })
+    });
+    // no-cors responses are opaque — we can't confirm success, but the request was sent
+    return { sent: true };
+  } catch (err) {
+    console.error('Sheet log failed', err);
+    return { error: err };
+  }
+}
+
+/* ---- Dashboard: reads logged trainings back from the Google Sheet and summarizes ---- */
+function closeDashboard(){ el('dashboardModal').classList.remove('show'); }
+
+function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function openDashboard(){
+  el('dashboardModal').classList.add('show');
+  const body = el('dashboardBody');
+  body.innerHTML = '<div class="helptext busy">Loading training log…</div>';
+
+  let cfg = null;
+  try {
+    const raw = await window.storage.get('sheet-config', false);
+    if (raw) cfg = JSON.parse(raw.value);
+  } catch(e){}
+
+  if (!cfg || !cfg.url) {
+    body.innerHTML = '<div class="helptext err">No Google Sheet is connected yet, so there\'s no training log to summarize. Close this, go to "Google Sheet Log → ⚙️ Setup" below, connect a sheet, log a few reports, then come back here.</div>'
+      + await buildVisitReportsHtml();
+    return;
+  }
+
+  let rows = [];
+  try {
+    const res = await fetch(cfg.url, { method: 'GET' });
+    if (!res.ok) throw new Error('Sheet request failed (' + res.status + ')');
+    rows = await res.json();
+    if (!Array.isArray(rows)) throw new Error('Unexpected response from the sheet — is doGet() set up? See Google Sheet Log → Setup for the updated script.');
+  } catch (err) {
+    console.error(err);
+    body.innerHTML = '<div class="helptext err">⚠️ Could not read the training log: ' + escapeHtml(err && err.message ? err.message : 'unknown error')
+      + '. Most likely your Apps Script needs the doGet() function added — open Google Sheet Log → ⚙️ Setup and re-paste the updated script (it now includes doGet), then redeploy as a new version.</div>'
+      + await buildVisitReportsHtml();
+    return;
+  }
+
+  // Site-wise tallies, matched against the Training Tracker directory
+  const norm = s => (s || '').toString().trim().toLowerCase();
+  const bySite = {}; // normalized site -> { count, lastDate, lastTimestamp, client }
+  rows.forEach(r => {
+    const key = norm(r.site);
+    if (!key) return;
+    if (!bySite[key]) bySite[key] = { count: 0, lastDate: '', lastTimestamp: '', client: r.client || '', displaySite: r.site };
+    bySite[key].count++;
+    if (!bySite[key].lastTimestamp || (r.timestamp && r.timestamp > bySite[key].lastTimestamp)) {
+      bySite[key].lastTimestamp = r.timestamp || '';
+      bySite[key].lastDate = r.date || '';
+    }
+  });
+
+  const fullDir = getFullDirectory();
+  const dirBySite = fullDir.map(e => ({ ...e, key: norm(e.location) }));
+  const doneSites = dirBySite.filter(e => bySite[e.key]);
+  const remainingSites = dirBySite.filter(e => !bySite[e.key]);
+
+  const totalTrainings = rows.length;
+  const uniqueSitesTrained = Object.keys(bySite).length;
+  const totalDirectorySites = fullDir.length;
+
+  const recent = rows.slice().sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || '')).slice(0, 10);
+
+  let html = '';
+  html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">';
+  html += statCard(totalTrainings, 'Trainings logged');
+  html += statCard(uniqueSitesTrained + ' / ' + totalDirectorySites, 'Tracker sites covered');
+  html += statCard(remainingSites.length, 'Sites with no training yet');
+  html += '</div>';
+
+  html += '<h4 style="margin:14px 0 6px;">Recent Trainings</h4>';
+  if (recent.length) {
+    html += '<div style="max-height:180px;overflow-y:auto;border:1px solid #eee;border-radius:6px;">';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">';
+    html += '<tr style="background:#f5f5f5;text-align:left;"><th style="padding:6px 8px;">Site</th><th style="padding:6px 8px;">Client</th><th style="padding:6px 8px;">Date</th></tr>';
+    recent.forEach(r => {
+      html += '<tr style="border-top:1px solid #eee;"><td style="padding:6px 8px;">' + escapeHtml(r.site) + '</td><td style="padding:6px 8px;">' + escapeHtml(r.client) + '</td><td style="padding:6px 8px;">' + escapeHtml(r.date) + '</td></tr>';
+    });
+    html += '</table></div>';
+  } else {
+    html += '<div class="helptext">No trainings logged yet.</div>';
+  }
+
+  html += '<h4 style="margin:16px 0 6px;">Sites With No Training Logged Yet (' + remainingSites.length + ')</h4>';
+  if (remainingSites.length) {
+    const byZone = {};
+    remainingSites.forEach(e => { const z = e.zone || 'OTHER'; (byZone[z] = byZone[z] || []).push(e); });
+    html += '<div style="max-height:220px;overflow-y:auto;border:1px solid #eee;border-radius:6px;padding:8px 10px;font-size:12.5px;">';
+    Object.keys(byZone).forEach(zone => {
+      html += '<div style="font-weight:600;margin-top:8px;">' + escapeHtml(zone) + '</div>';
+      byZone[zone].forEach(e => {
+        html += '<div style="padding:2px 0;">• ' + escapeHtml(e.location) + (e.client ? ' — ' + escapeHtml(e.client) : '') + '</div>';
+      });
+    });
+    html += '</div>';
+  } else {
+    html += '<div class="helptext ok">Every site in the Training Tracker has at least one training logged 🎉</div>';
+  }
+
+  html += '<h4 style="margin:16px 0 6px;">Sites Trained (' + doneSites.length + ')</h4>';
+  if (doneSites.length) {
+    html += '<div style="max-height:220px;overflow-y:auto;border:1px solid #eee;border-radius:6px;">';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">';
+    html += '<tr style="background:#f5f5f5;text-align:left;"><th style="padding:6px 8px;">Site</th><th style="padding:6px 8px;">Times Trained</th><th style="padding:6px 8px;">Last Date</th></tr>';
+    doneSites
+      .slice()
+      .sort((a, b) => bySite[b.key].count - bySite[a.key].count)
+      .forEach(e => {
+        const s = bySite[e.key];
+        html += '<tr style="border-top:1px solid #eee;"><td style="padding:6px 8px;">' + escapeHtml(e.location) + '</td><td style="padding:6px 8px;">' + s.count + '</td><td style="padding:6px 8px;">' + escapeHtml(s.lastDate) + '</td></tr>';
+      });
+    html += '</table></div>';
+  }
+
+  html += '<div class="helptext" style="margin-top:12px;">Matching is based on the exact site name text logged — sites selected from the "Select Client / Location" dropdown match reliably; manually-typed site names may not match the tracker if spelled differently.</div>';
+
+  html += await buildVisitReportsHtml();
+
+  body.innerHTML = html;
+}
+
+/* ---- Site Visit Reports summary for the Dashboard (read from the local log, not the Sheet) ---- */
+async function buildVisitReportsHtml(){
+  let list = visitReports;
+  try {
+    const raw = await window.storage.get('visit-reports', false);
+    list = raw ? (JSON.parse(raw.value) || []) : [];
+  } catch(e){ list = visitReports || []; }
+
+  let html = '<h4 style="margin:20px 0 6px;border-top:1px solid #eee;padding-top:16px;">🧭 Site Visit Reports</h4>';
+  html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">';
+  html += statCard(list.length, 'Visit reports logged');
+  const uniqueClients = new Set(list.map(v => (v.client || v.location || '').trim().toLowerCase()).filter(Boolean));
+  html += statCard(uniqueClients.size, 'Clients/sites visited');
+  html += '</div>';
+
+  if (!list.length) {
+    html += '<div class="helptext">No site visit reports saved yet — fill in the "Site Visit Report" card and tap Save Visit Report to start this log.</div>';
+    return html;
+  }
+
+  const recent = list.slice().sort((a, b) => (b.ts || '').localeCompare(a.ts || '')).slice(0, 15);
+  html += '<div style="max-height:220px;overflow-y:auto;border:1px solid #eee;border-radius:6px;">';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">';
+  html += '<tr style="background:#f5f5f5;text-align:left;"><th style="padding:6px 8px;">Client</th><th style="padding:6px 8px;">Location</th><th style="padding:6px 8px;">Visit Date</th><th style="padding:6px 8px;">Region</th></tr>';
+  recent.forEach(v => {
+    html += '<tr style="border-top:1px solid #eee;"><td style="padding:6px 8px;">' + escapeHtml(v.client || '') + '</td><td style="padding:6px 8px;">' + escapeHtml(v.location || '') + '</td><td style="padding:6px 8px;">' + escapeHtml(v.visitDate || '') + '</td><td style="padding:6px 8px;">' + escapeHtml(v.region || '') + '</td></tr>';
+  });
+  html += '</table></div>';
+  return html;
+}
+
+function statCard(value, label){
+  return '<div style="flex:1;min-width:110px;background:#faf8f6;border:1px solid #eee;border-radius:8px;padding:10px 12px;text-align:center;">'
+    + '<div style="font-size:22px;font-weight:700;color:var(--maroon);">' + escapeHtml(value) + '</div>'
+    + '<div style="font-size:11px;color:#666;">' + escapeHtml(label) + '</div></div>';
+}
+
+el('trainingTopic').addEventListener('blur', () => autoFillFromTopic(false));
+
+init();
+
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const btn = document.getElementById('installBtn');
+  if (btn) btn.style.display = 'flex';
+});
+function triggerInstall(){
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.finally(() => {
+    deferredInstallPrompt = null;
+    const btn = document.getElementById('installBtn');
+    if (btn) btn.style.display = 'none';
+  });
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
